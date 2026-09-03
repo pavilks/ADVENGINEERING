@@ -95,12 +95,11 @@ function clearCanvas() {
     redrawCanvas();
 }
 
-//////////////////////////karuselis 
+//////////////////////////karuselis
 
-// Catalog Infinite Seamless Carousel Logic (Bezgalīga rotācija bez apstājas)
+// Catalog Infinite Seamless Carousel Logic (Atrisināta atduršanās un bloķēšanās)
 let catalogIndex = 0;
 let catalogAutoSlideTimer = null;
-let isCatalogTransitioning = false;
 
 function initSeamlessCatalog() {
     const track = document.getElementById('catalogTrack');
@@ -111,10 +110,11 @@ function initSeamlessCatalog() {
     const cards = Array.from(track.querySelectorAll('.catalog-card'));
     if (cards.length === 0) return;
 
-    // Klonējam visas kartītes un pievienojam beigās
+    // Klonējam visas kartītes, lai izveidotu 2 pilnus ciklus
     cards.forEach(card => {
         const clone = card.cloneNode(true);
         clone.classList.add('cloned');
+        // Pārliecināmies, ka uz klona var uzklikšķināt
         clone.addEventListener('click', () => {
             card.click();
         });
@@ -127,49 +127,52 @@ function moveCatalog(direction) {
     const container = document.querySelector('.catalog-track-container');
     if (!track || !container) return;
 
-    const cardWidth = 232; // 220px kartīte + 12px gap
+    const cards = track.querySelectorAll('.catalog-card');
+    const originalCount = track.querySelectorAll('.catalog-card:not(.cloned)').length;
+    if (cards.length === 0) return;
 
-    // Mobilais skats
+    // Aprēķinām precīzu kartītes platumu kopā ar gap
+    const firstCard = cards[0];
+    const gap = parseInt(window.getComputedStyle(track).gap) || 12;
+    const cardWidth = firstCard.offsetWidth + gap;
+
+    // 1. MOBILĀS IERĪCES (Manual Touch Swipe & Auto)
     if (window.innerWidth <= 900) {
-        const maxScroll = container.scrollWidth / 2;
-        if (container.scrollLeft >= maxScroll) {
-            container.scrollLeft = 0;
+        const maxScroll = container.scrollWidth / 2; // Puse ir īstās, puse kloni
+        
+        if (direction > 0 && container.scrollLeft >= maxScroll - 5) {
+            container.scrollLeft = 0; // Nemanāmi atgriežas sākumā
+        } else if (direction < 0 && container.scrollLeft <= 5) {
+            container.scrollLeft = maxScroll;
         }
+        
         container.scrollBy({ left: direction * cardWidth, behavior: 'smooth' });
         return;
     }
 
-    // Datora skats
-    if (isCatalogTransitioning) return;
-    isCatalogTransitioning = true;
+    // 2. DATORA VERSIJA (Bultiņas & Auto-slide)
+    catalogIndex += direction;
 
-    const originalCardsCount = track.querySelectorAll('.catalog-card:not(.cloned)').length;
-
-    // Ja esam sasnieguši galu (klonus), nemanāmi atlecam uz 0 sākumu PIRMS nākamā gājiena
-    if (catalogIndex >= originalCardsCount) {
+    // Ja sasniegti kloni galā, vispirms nemanāmi atlecam uz īsto sākumu
+    if (catalogIndex >= originalCount) {
         track.style.transition = 'none';
         catalogIndex = 0;
         track.style.transform = `translateX(0px)`;
-        
-        // Nodrošinām, ka pārlūks paspēj atiestatīt pozīciju pirms nākamās kustības
-        setTimeout(() => {
-            catalogIndex += direction;
-            track.style.transition = 'transform 0.5s ease-in-out';
-            track.style.transform = `translateX(-${catalogIndex * cardWidth}px)`;
-            
-            setTimeout(() => {
-                isCatalogTransitioning = false;
-            }, 500);
-        }, 20);
-    } else {
-        catalogIndex += direction;
-        track.style.transition = 'transform 0.5s ease-in-out';
+        void track.offsetWidth; // Force Reflow
+        catalogIndex = 1; // Pārejam uz nākamo
+    } 
+    // Ja ejam atpakaļ garām sākumam
+    else if (catalogIndex < 0) {
+        track.style.transition = 'none';
+        catalogIndex = originalCount;
         track.style.transform = `translateX(-${catalogIndex * cardWidth}px)`;
-
-        setTimeout(() => {
-            isCatalogTransitioning = false;
-        }, 500);
+        void track.offsetWidth;
+        catalogIndex = originalCount - 1;
     }
+
+    // Bīdām ar plūdeno animāciju
+    track.style.transition = 'transform 0.4s ease-in-out';
+    track.style.transform = `translateX(-${catalogIndex * cardWidth}px)`;
 }
 
 function startCatalogAutoSlide() {
@@ -191,9 +194,25 @@ function setupCatalog() {
     startCatalogAutoSlide();
 
     const catalogWrapper = document.querySelector('.catalog-carousel-wrapper');
+    const container = document.querySelector('.catalog-track-container');
+
     if (catalogWrapper) {
         catalogWrapper.addEventListener('mouseenter', stopCatalogAutoSlide);
         catalogWrapper.addEventListener('mouseleave', startCatalogAutoSlide);
+    }
+
+    // Papildus drošība mobilajam skrulēšanas ciklam (Pirksta pārvilkšanai)
+    if (container) {
+        container.addEventListener('scroll', () => {
+            if (window.innerWidth <= 900) {
+                const maxScroll = container.scrollWidth / 2;
+                if (container.scrollLeft >= maxScroll * 1.8) {
+                    container.scrollLeft = container.scrollLeft - maxScroll;
+                } else if (container.scrollLeft <= 0) {
+                    container.scrollLeft = maxScroll;
+                }
+            }
+        });
     }
 }
 
@@ -202,6 +221,7 @@ if (document.readyState === 'loading') {
 } else {
     setupCatalog();
 }
+
 
         
 
