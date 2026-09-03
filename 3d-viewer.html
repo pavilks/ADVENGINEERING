@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D Model Viewer - ADV Engineering</title>
+    <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/3.4.0/model-viewer.min.js"></script>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #0b0f17;
+            color: #fff;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        header {
+            padding: 16px 24px;
+            background: #151c28;
+            border-bottom: 1px solid #1e293b;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        h1 { font-size: 1.1rem; margin: 0; color: #00f2fe; }
+        model-viewer {
+            width: 100%;
+            height: 100%;
+            flex: 1;
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1 id="modelTitle">3D Signage Interactive Model</h1>
+        <span>Rotate with mouse/finger</span>
+    </header>
+
+    <model-viewer id="viewer" src="" auto-rotate camera-controls shadow-intensity="1.5" ar></model-viewer>
+
+    <script>
+        // Nolasām 3D modeļa URL no saites parametriem (query params)
+        const urlParams = new URLSearchParams(window.location.search);
+        const modelUrl = urlParams.get('model');
+        const title = urlParams.get('title');
+
+        if (modelUrl) {
+            document.getElementById('viewer').src = modelUrl;
+        }
+        if (title) {
+            document.getElementById('modelTitle').innerText = title + ' (3D Spec)';
+        }
+    </script>
+</body>
+</html>
