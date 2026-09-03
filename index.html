@@ -37,27 +37,23 @@
                 </div>
             </div>
 
-            
-             <!-- AI VISUALIZATION BLOCK -->
+            <!-- AI VISUALIZATION BLOCK -->
             <div id="ai-generator" class="hero-ai-box">
                 <div class="ai-box-header">
                     <h3>Instant AI Visualizer</h3>
-                    <p>Combine facade photo, your artwork, and catalog specs</p>
+                    <p>Combine facade photo, artwork, and catalog specs</p>
                 </div>
 
-                <!-- 1. SOILIS: Fasādes foto -->
                 <div class="form-group">
                     <label>1. Upload Facade / Object Photo</label>
                     <input type="file" id="facadeInput" accept="image/*">
                 </div>
 
-                <!-- 2. SOILIS: Makets / Skice -->
                 <div class="form-group">
                     <label>2. Upload Signage Artwork / Sketch</label>
                     <input type="file" id="artworkInput" accept="image/*">
                 </div>
 
-                <!-- 3. SOILIS: Kataloga izpildījums -->
                 <div class="form-group">
                     <label>3. Select Catalog Production Type</label>
                     <select id="signageTypeSelect" class="form-control">
@@ -68,7 +64,6 @@
                     </select>
                 </div>
 
-                <!-- Canvas fasādei un iezīmēšanai -->
                 <div class="canvas-wrapper">
                     <canvas id="facadeCanvas"></canvas>
                     <div id="canvasPlaceholder" class="placeholder-text">
@@ -81,14 +76,15 @@
                     <button id="generateBtn" class="btn btn-primary btn-sm" onclick="generateVisualization()">Generate AI Concept</button>
                 </div>
             </div>
+        </div>
+    </header>
 
-
-    <!-- Modal result preview for generated AI image -->
+    <!-- Modal for AI result preview -->
     <div id="aiResultModal" class="modal">
         <div class="modal-content" style="max-width: 600px; text-align: center;">
             <span class="close-modal" onclick="closeAiModal()">&times;</span>
             <h3>Generated AI Signage Concept</h3>
-            <div class="modal-img-area" style="height: 350px; margin: 15px 0;">
+            <div class="modal-img-area" style="height: 320px; margin: 15px 0;">
                 <img id="resultImage" src="" alt="AI Concept">
             </div>
             <div class="hero-actions" style="justify-content: center;">
@@ -144,7 +140,7 @@
         </div>
     </section>
 
-    <!-- Modal / Detalizētais logs ar "View 3D Model" un "Use in Visualizer" pogām -->
+    <!-- Modal for Catalog Specifications -->
     <div id="catalogModal" class="modal">
         <div class="modal-content">
             <span class="close-modal" onclick="closeModal()">&times;</span>
