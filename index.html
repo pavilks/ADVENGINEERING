@@ -37,32 +37,42 @@
                 </div>
             </div>
 
-            <!-- AI VISUALIZATION BLOCK (Aizstāj veco 3D karuseli Hero daļā) -->
+            
+             <!-- AI VISUALIZATION BLOCK -->
             <div id="ai-generator" class="hero-ai-box">
                 <div class="ai-box-header">
                     <h3>Instant AI Visualizer</h3>
-                    <p>Upload facade photo & test signage types</p>
+                    <p>Combine facade photo, your artwork, and catalog specs</p>
                 </div>
 
+                <!-- 1. SOILIS: Fasādes foto -->
                 <div class="form-group">
-                    <label>Select Signage Type from Catalog</label>
-                    <select id="signageTypeSelect" class="form-control">
-                        <option value="LED Acrylic Letters (Halo & Front illuminated)">LED Acrylic Letters</option>
-                        <option value="Pylon & Totem Signage (Heavy-duty outdoor)">Architectural Pylons</option>
-                        <option value="Facade Light Boxes (Textile & Acrylic)">Facade Light Boxes</option>
-                        <option value="Retail Branding & Indoor Displays">Retail Branding</option>
-                    </select>
-                </div>
-
-                <div class="form-group">
-                    <label>Upload Facade Photo</label>
+                    <label>1. Upload Facade / Object Photo</label>
                     <input type="file" id="facadeInput" accept="image/*">
                 </div>
 
+                <!-- 2. SOILIS: Makets / Skice -->
+                <div class="form-group">
+                    <label>2. Upload Signage Artwork / Sketch</label>
+                    <input type="file" id="artworkInput" accept="image/*">
+                </div>
+
+                <!-- 3. SOILIS: Kataloga izpildījums -->
+                <div class="form-group">
+                    <label>3. Select Catalog Production Type</label>
+                    <select id="signageTypeSelect" class="form-control">
+                        <option value="LED Acrylic Letters (Halo & Front illuminated)">LED Acrylic Letters (Halo & Front)</option>
+                        <option value="Pylon & Totem Signage (Heavy-duty outdoor steel structure)">Architectural Pylons & Totems</option>
+                        <option value="Facade Light Boxes (Textile tension & Acrylic systems)">Facade Light Boxes</option>
+                        <option value="Retail Branding & Premium Indoor Displays">Retail Branding Displays</option>
+                    </select>
+                </div>
+
+                <!-- Canvas fasādei un iezīmēšanai -->
                 <div class="canvas-wrapper">
                     <canvas id="facadeCanvas"></canvas>
                     <div id="canvasPlaceholder" class="placeholder-text">
-                        <span>📷 Upload facade photo & draw box</span>
+                        <span>📷 Upload facade photo & draw placement box</span>
                     </div>
                 </div>
 
@@ -71,8 +81,7 @@
                     <button id="generateBtn" class="btn btn-primary btn-sm" onclick="generateVisualization()">Generate AI Concept</button>
                 </div>
             </div>
-        </div>
-    </header>
+
 
     <!-- Modal result preview for generated AI image -->
     <div id="aiResultModal" class="modal">
