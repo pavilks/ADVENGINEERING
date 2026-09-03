@@ -21,7 +21,7 @@
 html, body {
     width: 100%;
     max-width: 100vw;
-    overflow-x: hidden; /* Pilnībā bloķē horizontālo izslīdēšanu */
+    overflow-x: hidden;
     background-color: var(--bg-main);
     color: var(--text-main);
     line-height: 1.5;
@@ -91,7 +91,7 @@ html, body {
     font-size: 0.85rem;
 }
 
-/* 3. Hero Sekcija (Pielāgota mobilajam) */
+/* 3. Hero Sekcija */
 .hero {
     padding: 24px 0 40px;
     width: 100%;
@@ -119,7 +119,7 @@ html, body {
 
 .hero-text {
     width: 100%;
-    min-width: 0; /* Neļauj bērnu elementiem izspiest rāmi */
+    min-width: 0;
 }
 
 .hero-text h1 {
@@ -127,7 +127,7 @@ html, body {
     line-height: 1.2;
     font-weight: 700;
     margin-bottom: 12px;
-    word-wrap: break-word; /* Ļauj virsrakstam ietilpt mobilajā */
+    word-wrap: break-word;
 }
 
 .hero-text h1 span {
@@ -319,6 +319,7 @@ html, body {
     display: flex;
     gap: 12px;
     width: max-content;
+    transition: transform 0.4s ease-in-out;
 }
 
 .catalog-card {
@@ -329,6 +330,7 @@ html, body {
     border-radius: var(--radius);
     padding: 12px;
     box-sizing: border-box;
+    cursor: pointer;
 }
 
 .catalog-img-box {
@@ -373,7 +375,7 @@ html, body {
 .prev-btn { margin-right: 8px; }
 .next-btn { margin-left: 8px; }
 
-/* 6. Modālie Logi */
+/* 6. Modālie Logi (Palielināts izmērs) */
 .modal {
     display: none;
     position: fixed;
@@ -386,43 +388,44 @@ html, body {
     backdrop-filter: blur(8px);
     align-items: center;
     justify-content: center;
-    padding: 12px;
+    padding: 16px;
 }
 
 .modal-content {
     background: var(--bg-card);
     border: 1px solid var(--border);
     border-radius: var(--radius);
-    max-width: 1000px;
-    width: 100%;
+    max-width: 1100px;
+    width: 95%;
     max-height: 90vh;
     overflow-y: auto;
-    padding: 20px;
+    padding: 32px;
     position: relative;
     box-sizing: border-box;
 }
 
 .close-modal {
     position: absolute;
-    top: 10px;
-    right: 14px;
-    font-size: 1.8rem;
+    top: 14px;
+    right: 18px;
+    font-size: 2rem;
     color: var(--text-muted);
     cursor: pointer;
 }
 
 .modal-grid {
     display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 20px;
+    grid-template-columns: 1.1fr 0.9fr;
+    gap: 32px;
+    align-items: center;
 }
 
 .modal-img-area {
     position: relative;
-    border-radius: 8px;
+    border-radius: var(--radius);
     overflow: hidden;
     border: 1px solid var(--border);
-    height: 300px;
+    height: 380px;
     width: 100%;
 }
 
@@ -434,28 +437,35 @@ html, body {
 
 .modal-badge {
     position: absolute;
-    bottom: 8px;
-    left: 8px;
+    bottom: 12px;
+    left: 12px;
     background: rgba(11, 15, 23, 0.9);
     color: var(--accent);
-    padding: 4px 8px;
+    padding: 6px 12px;
     border-radius: 4px;
-    font-size: 0.7rem;
+    font-size: 0.75rem;
+    font-family: monospace;
+    border: 1px solid var(--border);
 }
 
-.modal-info-area h3 { font-size: 1.3rem; margin-bottom: 4px; }
-.modal-sub { color: var(--accent); font-size: 0.85rem; margin-bottom: 12px; }
-.modal-divider { border: none; height: 1px; background: var(--border); margin: 12px 0; }
-.modal-info-area p#modalDescription { color: var(--text-muted); font-size: 0.85rem; }
+.modal-info-area h3 { font-size: 1.6rem; margin-bottom: 6px; }
+.modal-sub { color: var(--accent); font-size: 0.95rem; margin-bottom: 16px; }
+.modal-divider { border: none; height: 1px; background: var(--border); margin: 16px 0; }
+.modal-info-area p#modalDescription { color: var(--text-muted); font-size: 0.9rem; line-height: 1.6; }
 
 .modal-action-buttons {
     display: flex;
     flex-wrap: wrap;
-    gap: 8px;
-    margin-top: 16px;
+    gap: 10px;
+    margin-top: 24px;
 }
 
-/* 7. Pārējās Sekcijas un Pāreja uz Mobilajiem (Atrisinājums ekrāna bildei) */
+.btn-3d {
+    border-color: #00f2fe;
+    color: #00f2fe;
+}
+
+/* 7. Pārējās Sekcijas & Mobile Responsive Rules */
 .services, .value, .contact { padding: 40px 0; width: 100%; }
 .value { background: #0e1420; border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); }
 .section-header { text-align: center; max-width: 600px; margin: 0 auto 24px; }
@@ -494,48 +504,15 @@ html, body {
 footer { padding: 20px 0; border-top: 1px solid var(--border); color: var(--text-muted); font-size: 0.75rem; }
 .footer-content { display: flex; justify-content: space-between; }
 
-/* STRICT RESPONSIVE RULES (Zem 900px) */
 @media (max-width: 900px) {
-    .nav-links a:not(.nav-btn) {
-        display: none;
-    }
-
-    .hero-grid {
-        grid-template-columns: 1fr; /* Pārslēdz uz 1 kolonu, atbrīvojot platumu mobilajam */
-        gap: 20px;
-    }
-
-    .hero-text h1 {
-        font-size: 1.5rem; /* Samazina virsrakstu, lai neaizņem visu ekrānu */
-    }
-
-    .hero-actions {
-        flex-direction: column; /* Pogas sakārtojas viena zem otras */
-    }
-
-    .hero-actions .btn {
-        width: 100%; /* Pogas izplešas pilnā rāmī */
-    }
-
-    .carousel-btn {
-        display: none; /* Slēpj bultiņas mobilajā, ļaujot vilkt ar pirkstu */
-    }
-
-    .modal-grid {
-        grid-template-columns: 1fr;
-    }
-
-    .modal-img-area {
-        height: 200px;
-    }
-
-    .contact-box {
-        grid-template-columns: 1fr;
-    }
-
-    .footer-content {
-        flex-direction: column;
-        gap: 6px;
-        text-align: center;
-    }
+    .nav-links a:not(.nav-btn) { display: none; }
+    .hero-grid { grid-template-columns: 1fr; gap: 20px; }
+    .hero-text h1 { font-size: 1.5rem; }
+    .hero-actions { flex-direction: column; }
+    .hero-actions .btn { width: 100%; }
+    .carousel-btn { display: none; }
+    .modal-grid { grid-template-columns: 1fr; }
+    .modal-img-area { height: 200px; }
+    .contact-box { grid-template-columns: 1fr; }
+    .footer-content { flex-direction: column; gap: 6px; text-align: center; }
 }
