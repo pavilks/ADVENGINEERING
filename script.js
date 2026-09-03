@@ -8,6 +8,7 @@ let startX = 0, startY = 0;
 let boundingBox = null;
 let currentSelectedTitle = '';
 
+//////////////////////////////////
 // 1. Facade Image Upload
 document.getElementById('facadeInput').addEventListener('change', function(e) {
     const file = e.target.files[0];
@@ -27,6 +28,7 @@ document.getElementById('facadeInput').addEventListener('change', function(e) {
     reader.readAsDataURL(file);
 });
 
+///////////////////////////
 // 2. Artwork Upload
 document.getElementById('artworkInput').addEventListener('change', function(e) {
     const file = e.target.files[0];
@@ -40,6 +42,7 @@ document.getElementById('artworkInput').addEventListener('change', function(e) {
     reader.readAsDataURL(file);
 });
 
+//////////////////////////////
 // Canvas Selection Box Logic
 canvas.addEventListener('mousedown', (e) => {
     if (!bgImage) return;
@@ -92,66 +95,105 @@ function clearCanvas() {
     redrawCanvas();
 }
 
-// Catalog Horizontal Carousel Logic with Infinite Auto-Rotation
+//////////////////////////
+
+            // Catalog Infinite Seamless Carousel Logic (Griežas uz riņķi kā ripa)
 let catalogIndex = 0;
 let catalogAutoSlideTimer = null;
+let isCatalogTransitioning = false;
+
+function initSeamlessCatalog() {
+    const track = document.getElementById('catalogTrack');
+    if (!track) return;
+
+    // Lai izvairītos no dubultas klonēšanas, ha pārlādē
+    if (track.querySelector('.cloned')) return;
+
+    const cards = Array.from(track.querySelectorAll('.catalog-card'));
+    if (cards.length === 0) return;
+
+    // Klonējam pirmās kartītes un pievienojam beigās bezgalīgajai cilpai
+    cards.forEach(card => {
+        const clone = card.cloneNode(true);
+        clone.classList.add('cloned');
+        track.appendChild(clone);
+    });
+
+    // Pievienojam transition apstrādi plūdenai pārejai
+    track.addEventListener('transitionend', handleCatalogTransitionEnd);
+}
 
 function moveCatalog(direction) {
-    const container = document.querySelector('.catalog-track-container');
-    const track = document.getElementById('catalogTrack');
-    const cards = track.querySelectorAll('.catalog-card');
-    if (cards.length === 0) return;
-    
-    const cardWidth = 232; // 220px kartīte + 12px atstarpe
-    const maxVisibleCards = Math.floor(container.offsetWidth / cardWidth);
-    const maxIndex = cards.length - (maxVisibleCards > 0 ? maxVisibleCards : 1);
+    if (isCatalogTransitioning) return;
 
-    // Ja ir mobilais ekrāns (zem 900px), izmantojam scrollLeft
+    const track = document.getElementById('catalogTrack');
+    const container = document.querySelector('.catalog-track-container');
+    if (!track || !container) return;
+
+    const cardWidth = 232; // 220px kartīte + 12px atstarpe
+
+    // Mobilajā skatā izmantojam gludo scrollLeft
     if (window.innerWidth <= 900) {
-        // Pārbaudām, vai esam sasnieguši pašu galu mobilajā skrulēšanā
-        const maxScrollLeft = container.scrollWidth - container.clientWidth;
-        if (direction > 0 && container.scrollLeft >= maxScrollLeft - 10) {
-            container.scrollTo({ left: 0, behavior: 'smooth' });
-        } else if (direction < 0 && container.scrollLeft <= 10) {
-            container.scrollTo({ left: maxScrollLeft, behavior: 'smooth' });
-        } else {
-            container.scrollBy({ left: direction * cardWidth, behavior: 'smooth' });
+        const maxScroll = container.scrollWidth / 2; // Tā kā puse ir kloni
+        if (container.scrollLeft >= maxScroll) {
+            container.scrollLeft = 0;
         }
+        container.scrollBy({ left: direction * cardWidth, behavior: 'smooth' });
     } else {
-        // Datora versijai (ar Transform)
+        // Datora skatā izmantojam plūdeno CSS transformāciju
+        isCatalogTransitioning = true;
         catalogIndex += direction;
-        
-        // Bezgalīgā cilpa: ja pārnāk pāri beigām, lēcam uz 0 (sākumu)
-        if (catalogIndex > maxIndex) {
-            catalogIndex = 0;
-        } else if (catalogIndex < 0) {
-            catalogIndex = maxIndex >= 0 ? maxIndex : 0;
-        }
-        
+        track.style.transition = 'transform 0.5s ease-in-out';
         track.style.transform = `translateX(-${catalogIndex * cardWidth}px)`;
     }
+}
+
+function handleCatalogTransitionEnd() {
+    const track = document.getElementById('catalogTrack');
+    const originalCardsCount = track.querySelectorAll('.catalog-card:not(.cloned)').length;
+    const cardWidth = 232;
+
+    // Kad sasniegti kloni beigās, nemanāmi (bez animācijas) pārlecam uz sākumu
+    if (catalogIndex >= originalCardsCount) {
+        track.style.transition = 'none';
+        catalogIndex = 0;
+        track.style.transform = `translateX(0px)`;
+    } 
+    // Ja iet uz atpakaļu no sākuma, nemanāmi pārlecam uz pēdējo īsto kartīti
+    else if (catalogIndex < 0) {
+        track.style.transition = 'none';
+        catalogIndex = originalCardsCount - 1;
+        track.style.transform = `translateX(-${catalogIndex * cardWidth}px)`;
+    }
+
+    isCatalogTransitioning = false;
 }
 
 function startCatalogAutoSlide() {
     stopCatalogAutoSlide();
     catalogAutoSlideTimer = setInterval(() => {
         moveCatalog(1);
-    }, 3500); // Rotē ik pēc 3.5 sekundēm
+    }, 3000); // Kustas uz priekšu ik pēc 3 sekundēm
 }
 
 function stopCatalogAutoSlide() {
     if (catalogAutoSlideTimer) clearInterval(catalogAutoSlideTimer);
 }
 
-// Palaist rotāciju un apturēt uz hover
-startCatalogAutoSlide();
+// Inicializējam bezgalīgo karuseli un palaižam rotāciju
+document.addEventListener('DOMContentLoaded', () => {
+    initSeamlessCatalog();
+    startCatalogAutoSlide();
 
-const catalogWrapper = document.querySelector('.catalog-carousel-wrapper');
-if (catalogWrapper) {
-    catalogWrapper.addEventListener('mouseenter', stopCatalogAutoSlide);
-    catalogWrapper.addEventListener('mouseleave', startCatalogAutoSlide);
-}
+    const catalogWrapper = document.querySelector('.catalog-carousel-wrapper');
+    if (catalogWrapper) {
+        catalogWrapper.addEventListener('mouseenter', stopCatalogAutoSlide);
+        catalogWrapper.addEventListener('mouseleave', startCatalogAutoSlide);
+    }
+});
 
+
+////////////////////////
 
 // Modal Dialog Logic
 function openModal(title, subtitle, imgSrc, description, modelUrl) {
