@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Visual Advertising Engineering & Supervision</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="container nav-container">
+            <a href="#" class="logo">ADV<span>ENGINEERING</span></a>
+            <ul class="nav-links">
+                <li><a href="#catalog">Catalog</a></li>
+                <li><a href="#services">Services</a></li>
+                <li><a href="#value">Value</a></li>
+                <li><a href="#contact" class="nav-btn">Start Project</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <header class="hero">
+        <div class="container hero-grid">
+            <div class="hero-text">
+                <span class="badge">Baltic Region Supervision & Engineering</span>
+                <h1>Flawless Visual Advertising:<br><span>From Blueprint to Installation</span></h1>
+                <p>Engineering design and strictly controlled manufacturing oversight across the Baltic region (Latvia, Lithuania, Estonia). We represent your interests on-site with top-tier local producers.</p>
+                <div class="hero-actions">
+                    <a href="#contact" class="btn btn-primary">Submit a Project</a>
+                    <a href="#catalog" class="btn btn-secondary">Explore Catalog</a>
+                </div>
+            </div>
+
+            <!-- AI VISUALIZATION BLOCK (Aizstāj veco 3D karuseli Hero daļā) -->
+            <div id="ai-generator" class="hero-ai-box">
+                <div class="ai-box-header">
+                    <h3>Instant AI Visualizer</h3>
+                    <p>Upload facade photo & test signage types</p>
+                </div>
+
+                <div class="form-group">
+                    <label>Select Signage Type from Catalog</label>
+                    <select id="signageTypeSelect" class="form-control">
+                        <option value="LED Acrylic Letters (Halo & Front illuminated)">LED Acrylic Letters</option>
+                        <option value="Pylon & Totem Signage (Heavy-duty outdoor)">Architectural Pylons</option>
+                        <option value="Facade Light Boxes (Textile & Acrylic)">Facade Light Boxes</option>
+                        <option value="Retail Branding & Indoor Displays">Retail Branding</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>Upload Facade Photo</label>
+                    <input type="file" id="facadeInput" accept="image/*">
+                </div>
+
+                <div class="canvas-wrapper">
+                    <canvas id="facadeCanvas"></canvas>
+                    <div id="canvasPlaceholder" class="placeholder-text">
+                        <span>📷 Upload facade photo & draw box</span>
+                    </div>
+                </div>
+
+                <div class="canvas-actions">
+                    <button class="btn btn-secondary btn-sm" onclick="clearCanvas()">Clear Box</button>
+                    <button id="generateBtn" class="btn btn-primary btn-sm" onclick="generateVisualization()">Generate AI Concept</button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Modal result preview for generated AI image -->
+    <div id="aiResultModal" class="modal">
+        <div class="modal-content" style="max-width: 600px; text-align: center;">
+            <span class="close-modal" onclick="closeAiModal()">&times;</span>
+            <h3>Generated AI Signage Concept</h3>
+            <div class="modal-img-area" style="height: 350px; margin: 15px 0;">
+                <img id="resultImage" src="" alt="AI Concept">
+            </div>
+            <div class="hero-actions" style="justify-content: center;">
+                <a id="downloadBtn" href="#" download="signage-concept.png" class="btn btn-secondary">Download Image</a>
+                <a href="#contact" class="btn btn-primary" onclick="closeAiModal()">Request Quote</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Catalog Section -->
+    <section id="catalog" class="catalog-section">
+        <div class="container">
+            <div class="section-header">
+                <h2>Visual Advertising Catalog</h2>
+                <p>Explore production types. Click any item to view technical details, internal profiles, and structural cross-sections.</p>
+            </div>
+
+            <div class="catalog-carousel-wrapper">
+                <button class="carousel-btn prev-btn" onclick="moveCatalog(-1)">&#10094;</button>
+                
+                <div class="catalog-track-container">
+                    <div class="catalog-track" id="catalogTrack">
+                        
+                        <div class="catalog-card" onclick="openModal('LED Acrylic Letters', 'Full-face illuminated 3D letters with aluminum returns.', 'https://images.unsplash.com/photo-1563986768609-322da13575f3?auto=format&fit=crop&w=600&q=80', 'Details: 3mm opal acrylic face, 1mm welded aluminum sides with powder coating, waterproof Samsung LED modules inside, CNC-routed PVC backplate.', 'https://modelviewer.dev/shared-assets/models/Astronaut.glb')">
+                            <div class="catalog-img-box">
+                                <img src="https://images.unsplash.com/photo-1563986768609-322da13575f3?auto=format&fit=crop&w=600&q=80" alt="3D Letters">
+                            </div>
+                            <h3>LED Acrylic Letters</h3>
+                            <p>Halo & Front illuminated</p>
+                        </div>
+
+                        <div class="catalog-card" onclick="openModal('Pylon & Totem Signage', 'Heavy-duty architectural pylons for corporate headquarters.', 'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?auto=format&fit=crop&w=600&q=80', 'Details: Internal structural steel frame wind-calculated for Baltic climate, galvanized steel sheet cladding, integrated LED illumination boxes.', 'https://modelviewer.dev/shared-assets/models/RobotExpressive.glb')">
+                            <div class="catalog-img-box">
+                                <img src="https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?auto=format&fit=crop&w=600&q=80" alt="Pylon">
+                            </div>
+                            <h3>Architectural Pylons</h3>
+                            <p>Standalone outdoor towers</p>
+                        </div>
+
+                        <div class="catalog-card" onclick="openModal('Facade Light Boxes', 'Slim profile outdoor light boxes with seamless fabric tension.', 'https://images.unsplash.com/photo-1541888946425-d0fbb18f86f6?auto=format&fit=crop&w=600&q=80', 'Details: Anodized aluminum snap frames, back-lit LED curtains with optical lenses, high-durability UV-printed backlits textiles.', 'https://modelviewer.dev/shared-assets/models/NeilArmstrong.glb')">
+                            <div class="catalog-img-box">
+                                <img src="https://images.unsplash.com/photo-1541888946425-d0fbb18f86f6?auto=format&fit=crop&w=600&q=80" alt="Light Box">
+                            </div>
+                            <h3>Facade Light Boxes</h3>
+                            <p>Textile & Acrylic systems</p>
+                        </div>
+
+                    </div>
+                </div>
+
+                <button class="carousel-btn next-btn" onclick="moveCatalog(1)">&#10095;</button>
+            </div>
+        </div>
+    </section>
+
+    <!-- Modal / Detalizētais logs ar "View 3D Model" un "Use in Visualizer" pogām -->
+    <div id="catalogModal" class="modal">
+        <div class="modal-content">
+            <span class="close-modal" onclick="closeModal()">&times;</span>
+            <div class="modal-grid">
+                <div class="modal-img-area">
+                    <img id="modalImg" src="" alt="Technical Section">
+                    <span class="modal-badge">Technical Cross-Section & Spec</span>
+                </div>
+                <div class="modal-info-area">
+                    <h3 id="modalTitle">Title</h3>
+                    <p id="modalSubtitle" class="modal-sub">Subtitle</p>
+                    <hr class="modal-divider">
+                    <h4>Engineering Specifications:</h4>
+                    <p id="modalDescription">Description text...</p>
+                    
+                    <div class="modal-action-buttons">
+                        <a href="#contact" class="btn btn-primary" onclick="closeModal()">Request Similar Project</a>
+                        <a id="modal3dBtn" href="#" target="_blank" class="btn btn-secondary btn-3d">3D View 3D Model</a>
+                        <button class="btn btn-secondary" onclick="useInVisualizer()">⚡ Use in Visualizer</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Services Section -->
+    <section id="services" class="services">
+        <div class="container">
+            <div class="section-header">
+                <h2>Our Core Services</h2>
+                <p>End-to-end technical execution tailored for brand signage and architectural advertising.</p>
+            </div>
+            <div class="grid">
+                <div class="card">
+                    <div class="card-icon">📐</div>
+                    <h3>Engineering & Design</h3>
+                    <p>Production-ready technical drawings, structural integrity planning, load calculations, and precise material specs (LED, metals, acrylics).</p>
+                </div>
+                <div class="card">
+                    <div class="card-icon">🏭</div>
+                    <h3>Manufacturer Selection</h3>
+                    <p>Matching your specs with vetted producers based on technical capacity, factory load, tight timelines, and realistic pricing.</p>
+                </div>
+                <div class="card">
+                    <div class="card-icon">🔍</div>
+                    <h3>Baltic Production Supervision</h3>
+                    <p>On-site quality control directly in Baltic factories. We conduct physical inspections, material verifications, and structural sign-offs before shipping or installation.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Value Section -->
+    <section id="value" class="value">
+        <div class="container">
+            <div class="section-header">
+                <h2>Why Technical Oversight Matters</h2>
+                <p>We represent your interests—not the manufacturer's.</p>
+            </div>
+            <div class="value-grid">
+                <div class="value-card">
+                    <h4>Cost Optimization</h4>
+                    <p>Eliminate hidden producer markups and avoid expensive re-works caused by unvetted design flaws before production starts.</p>
+                </div>
+                <div class="value-card">
+                    <h4>Uncompromised Quality</h4>
+                    <p>Rigorous oversight guarantees exact brand color matches, weather-resistant materials, and neat structural finishing.</p>
+                </div>
+                <div class="value-card">
+                    <h4>Zero Project Hassle</h4>
+                    <p>You get a single expert point of contact while we handle all technical communication with engineers and factories.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Contact Section -->
+    <section id="contact" class="contact">
+        <div class="container">
+            <div class="contact-box">
+                <div class="contact-info">
+                    <h2>Let's Build Your Project Right</h2>
+                    <p>Have a blueprint, initial draft, or tender specs? Send them over for an independent technical review.</p>
+                </div>
+                <form action="https://formspree.io/f/YOUR_FORM_ID" method="POST" class="form">
+                    <div class="form-group">
+                        <input type="text" name="name" placeholder="Your Name" required>
+                    </div>
+                    <div class="form-group">
+                        <input type="email" name="email" placeholder="Your Email" required>
+                    </div>
+                    <div class="form-group">
+                        <input type="text" name="company" placeholder="Company Name">
+                    </div>
+                    <div class="form-group">
+                        <textarea name="message" rows="4" placeholder="Describe your project, timeline, or scope..." required></textarea>
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-full">Send Request</button>
+                </form>
+            </div>
+        </div>
+    </section>
+
+    <footer>
+        <div class="container footer-content">
+            <p>&copy; 2026 ADV ENGINEERING. All rights reserved.</p>
+            <p>Visual Advertising Project Supervision</p>
+        </div>
+    </footer>
+
+    <script src="script.js"></script>
+</body>
+</html>
