@@ -76,22 +76,52 @@ function clearCanvas() {
     redrawCanvas();
 }
 
-// Catalog Horizontal Carousel Logic
+// Catalog Horizontal Carousel Logic (ar automātisko rotāciju)
 let catalogIndex = 0;
+let catalogAutoSlideTimer = null;
+
 function moveCatalog(direction) {
     const track = document.getElementById('catalogTrack');
     const cards = track.querySelectorAll('.catalog-card');
     if (cards.length === 0) return;
     
-    const cardWidth = cards[0].offsetWidth + 24;
-    catalogIndex += direction;
-    
+    const cardWidth = cards[0].offsetWidth + 24; // Kartītes platums + atstarpe
     const maxIndex = cards.length - Math.floor(track.parentElement.offsetWidth / cardWidth);
     
-    if (catalogIndex < 0) catalogIndex = 0;
-    if (catalogIndex > maxIndex && maxIndex >= 0) catalogIndex = maxIndex;
+    catalogIndex += direction;
+    
+    // Ja sasniegtas beigas, sākam no sākuma; ja iet uz atpakaļu no sākuma, ejam uz beigām
+    if (catalogIndex > maxIndex) {
+        catalogIndex = 0;
+    } else if (catalogIndex < 0) {
+        catalogIndex = maxIndex >= 0 ? maxIndex : 0;
+    }
     
     track.style.transform = `translateX(-${catalogIndex * cardWidth}px)`;
+}
+
+// Funkcija automātiskajai rotācijai (ik pēc 4 sekundēm)
+function startCatalogAutoSlide() {
+    stopCatalogAutoSlide(); // Drošībai attīram iepriekšējo taimeri
+    catalogAutoSlideTimer = setInterval(() => {
+        moveCatalog(1);
+    }, 4000); // 4000 ms = 4 sekundes
+}
+
+function stopCatalogAutoSlide() {
+    if (catalogAutoSlideTimer) {
+        clearInterval(catalogAutoSlideTimer);
+    }
+}
+
+// Palaist automātisko rotāciju uzreiz
+startCatalogAutoSlide();
+
+// Apstādināt rotāciju, ja lietotājs uzvirza peli pār karuselim (lai var ērti uzklikšķināt)
+const catalogWrapper = document.querySelector('.catalog-carousel-wrapper');
+if (catalogWrapper) {
+    catalogWrapper.addEventListener('mouseenter', stopCatalogAutoSlide);
+    catalogWrapper.addEventListener('mouseleave', startCatalogAutoSlide);
 }
 
 // Modal Dialog Logic
