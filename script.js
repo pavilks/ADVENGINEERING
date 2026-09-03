@@ -1,12 +1,14 @@
-// Canvas & Drawing Logic for Hero Visualizer
+ // Canvas & Image State
 const canvas = document.getElementById('facadeCanvas');
 const ctx = canvas.getContext('2d');
 let bgImage = null;
+let artworkImage = null;
 let isDrawing = false;
 let startX = 0, startY = 0;
 let boundingBox = null;
 let currentSelectedTitle = '';
 
+// 1. Handling Facade Image Upload
 document.getElementById('facadeInput').addEventListener('change', function(e) {
     const file = e.target.files[0];
     if (!file) return;
@@ -25,6 +27,20 @@ document.getElementById('facadeInput').addEventListener('change', function(e) {
     reader.readAsDataURL(file);
 });
 
+// 2. Handling Artwork / Sketch Upload
+document.getElementById('artworkInput').addEventListener('change', function(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = function(event) {
+        artworkImage = new Image();
+        artworkImage.src = event.target.result;
+    };
+    reader.readAsDataURL(file);
+});
+
+// Canvas Drawing Logic
 canvas.addEventListener('mousedown', (e) => {
     if (!bgImage) return;
     const rect = canvas.getBoundingClientRect();
@@ -75,6 +91,54 @@ function clearCanvas() {
     boundingBox = null;
     redrawCanvas();
 }
+
+// AI Visualization Generation API Call
+async function generateVisualization() {
+    if (!bgImage) {
+        alert('Please upload a facade photo first.');
+        return;
+    }
+
+    const btn = document.getElementById('generateBtn');
+    btn.innerText = 'Generating...';
+    btn.disabled = true;
+
+    try {
+        const facadeData = canvas.toDataURL('image/jpeg', 0.85);
+        const artworkData = artworkImage ? artworkImage.src : null;
+        const selectedType = document.getElementById('signageTypeSelect').value;
+
+        const BACKEND_URL = 'https://your-backend-service.vercel.app/api/generate';
+
+        const response = await fetch(BACKEND_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                facadeImage: facadeData,
+                artworkImage: artworkData, // Nosūta arī klienta maketu uz backendu
+                boundingBox: boundingBox,
+                catalogType: selectedType
+            })
+        });
+
+        const data = await response.json();
+
+        if (data.imageUrl) {
+            document.getElementById('resultImage').src = data.imageUrl;
+            document.getElementById('downloadBtn').href = data.imageUrl;
+            document.getElementById('aiResultModal').style.display = 'flex';
+        } else {
+            alert('Generation failed: ' + (data.error || 'Unknown error'));
+        }
+    } catch (err) {
+        alert('Connection error. Check backend configuration.');
+        console.error(err);
+    } finally {
+        btn.innerText = 'Generate AI Concept';
+        btn.disabled = false;
+    }
+}
+
 
 // Catalog Horizontal Carousel Logic (ar automātisko rotāciju)
 let catalogIndex = 0;
