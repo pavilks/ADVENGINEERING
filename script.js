@@ -95,9 +95,9 @@ function clearCanvas() {
     redrawCanvas();
 }
 
-//////////////////////////
+//////////////////////////karuselis 
 
-            // Catalog Infinite Seamless Carousel Logic (Griežas uz riņķi kā ripa)
+    // Catalog Infinite Seamless Carousel Logic (Bezgalīga rotācija)
 let catalogIndex = 0;
 let catalogAutoSlideTimer = null;
 let isCatalogTransitioning = false;
@@ -106,64 +106,70 @@ function initSeamlessCatalog() {
     const track = document.getElementById('catalogTrack');
     if (!track) return;
 
-    // Lai izvairītos no dubultas klonēšanas, ha pārlādē
+    // Ja jau saklonēts, neatkārtojam
     if (track.querySelector('.cloned')) return;
 
     const cards = Array.from(track.querySelectorAll('.catalog-card'));
     if (cards.length === 0) return;
 
-    // Klonējam pirmās kartītes un pievienojam beigās bezgalīgajai cilpai
+    // Dubultojam elementus, lai izveidotu pilnu bezgalīgu cilpu
     cards.forEach(card => {
         const clone = card.cloneNode(true);
         clone.classList.add('cloned');
+        // Pārliecināmies, ka noklikšķinot uz klona, arī atveras modālais logs
+        clone.addEventListener('click', () => {
+            card.click();
+        });
         track.appendChild(clone);
     });
 
-    // Pievienojam transition apstrādi plūdenai pārejai
     track.addEventListener('transitionend', handleCatalogTransitionEnd);
 }
 
 function moveCatalog(direction) {
-    if (isCatalogTransitioning) return;
-
     const track = document.getElementById('catalogTrack');
     const container = document.querySelector('.catalog-track-container');
     if (!track || !container) return;
 
     const cardWidth = 232; // 220px kartīte + 12px atstarpe
 
-    // Mobilajā skatā izmantojam gludo scrollLeft
     if (window.innerWidth <= 900) {
-        const maxScroll = container.scrollWidth / 2; // Tā kā puse ir kloni
+        // Mobilajās ierīcēs
+        const maxScroll = container.scrollWidth / 2;
         if (container.scrollLeft >= maxScroll) {
             container.scrollLeft = 0;
         }
         container.scrollBy({ left: direction * cardWidth, behavior: 'smooth' });
     } else {
-        // Datora skatā izmantojam plūdeno CSS transformāciju
+        // Datora versijā
+        if (isCatalogTransitioning) return;
         isCatalogTransitioning = true;
+
         catalogIndex += direction;
-        track.style.transition = 'transform 0.5s ease-in-out';
+        track.style.transition = 'transform 0.5s cubic-bezier(0.25, 1, 0.5, 1)';
         track.style.transform = `translateX(-${catalogIndex * cardWidth}px)`;
     }
 }
 
 function handleCatalogTransitionEnd() {
     const track = document.getElementById('catalogTrack');
+    if (!track) return;
+
     const originalCardsCount = track.querySelectorAll('.catalog-card:not(.cloned)').length;
     const cardWidth = 232;
 
-    // Kad sasniegti kloni beigās, nemanāmi (bez animācijas) pārlecam uz sākumu
+    // Kad sasniegti klonētie elementi, nemanāmi pārliecam atpakaļ uz sākumu
     if (catalogIndex >= originalCardsCount) {
         track.style.transition = 'none';
         catalogIndex = 0;
         track.style.transform = `translateX(0px)`;
-    } 
-    // Ja iet uz atpakaļu no sākuma, nemanāmi pārlecam uz pēdējo īsto kartīti
-    else if (catalogIndex < 0) {
+        // Piespiežam pārlūkprogrammu pārzīmēt stāvokli pirms nākamās animācijas
+        void track.offsetWidth; 
+    } else if (catalogIndex < 0) {
         track.style.transition = 'none';
         catalogIndex = originalCardsCount - 1;
         track.style.transform = `translateX(-${catalogIndex * cardWidth}px)`;
+        void track.offsetWidth;
     }
 
     isCatalogTransitioning = false;
@@ -173,15 +179,24 @@ function startCatalogAutoSlide() {
     stopCatalogAutoSlide();
     catalogAutoSlideTimer = setInterval(() => {
         moveCatalog(1);
-    }, 3000); // Kustas uz priekšu ik pēc 3 sekundēm
+    }, 3000); // Kustība ik pēc 3 sekundēm
 }
 
 function stopCatalogAutoSlide() {
-    if (catalogAutoSlideTimer) clearInterval(catalogAutoSlideTimer);
+    if (catalogAutoSlideTimer) {
+        clearInterval(catalogAutoSlideTimer);
+        catalogAutoSlideTimer = null;
+    }
 }
 
-// Inicializējam bezgalīgo karuseli un palaižam rotāciju
-document.addEventListener('DOMContentLoaded', () => {
+// Inicializācija ielādējot lapu
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', setupCatalog);
+} else {
+    setupCatalog();
+}
+
+function setupCatalog() {
     initSeamlessCatalog();
     startCatalogAutoSlide();
 
@@ -190,7 +205,8 @@ document.addEventListener('DOMContentLoaded', () => {
         catalogWrapper.addEventListener('mouseenter', stopCatalogAutoSlide);
         catalogWrapper.addEventListener('mouseleave', startCatalogAutoSlide);
     }
-});
+}
+        
 
 
 ////////////////////////
