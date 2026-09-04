@@ -133,16 +133,10 @@ function moveCatalog(direction) {
 
     // ---- MOBILE (touch scroll) ----
     if (window.innerWidth <= 900) {
-        const maxScroll = container.scrollWidth / 2; // half is real, half is clones
-
-        // Single source of truth for wrapping — do it BEFORE scrolling,
-        // and only here (the old scroll-listener reset is removed to stop the conflict).
-        if (direction > 0 && container.scrollLeft >= maxScroll - cardWidth / 2) {
-            container.scrollLeft -= maxScroll;
-        } else if (direction < 0 && container.scrollLeft <= cardWidth / 2) {
-            container.scrollLeft += maxScroll;
-        }
-
+        // No wrap logic here anymore. Wrapping is handled centrally by the
+        // 'scroll' event listener in setupCatalog(), because that's the only
+        // place that also sees ORGANIC finger swipes (not just button/auto
+        // triggered moves). Two separate wrap mechanisms was the original bug.
         container.scrollBy({ left: direction * cardWidth, behavior: 'smooth' });
         return;
     }
@@ -218,9 +212,25 @@ function setupCatalog() {
         catalogWrapper.addEventListener('touchcancel', startCatalogAutoSlide, { passive: true });
     }
 
-    // Note: the old scroll-listener-based reset for mobile has been removed.
-    // moveCatalog() now owns wrapping on its own, so the two mechanisms can't
-    // fight each other and leave scrollLeft stuck between thresholds.
+    // Single, canonical wrap handler for mobile — catches EVERY scroll source:
+    // finger swipes, arrow-button clicks, and auto-slide. This is the only
+    // place scrollLeft ever gets corrected, so there's no conflicting logic.
+    if (container) {
+        let scrollEndTimer = null;
+        container.addEventListener('scroll', () => {
+            if (window.innerWidth > 900) return;
+
+            clearTimeout(scrollEndTimer);
+            scrollEndTimer = setTimeout(() => {
+                const maxScroll = container.scrollWidth / 2;
+                if (container.scrollLeft >= maxScroll) {
+                    container.scrollLeft -= maxScroll;
+                } else if (container.scrollLeft < 0) {
+                    container.scrollLeft += maxScroll;
+                }
+            }, 80); // wait for the scroll (incl. momentum/snap) to actually settle
+        }, { passive: true });
+    }
 }
 
 if (document.readyState === 'loading') {
@@ -228,7 +238,6 @@ if (document.readyState === 'loading') {
 } else {
     setupCatalog();
 }
-
 
 ////////////////////////dialogs 
 
