@@ -109,6 +109,7 @@ let catalogIndex = 0;
 let catalogAutoSlideTimer = null;
 let catalogIsAnimating = false;
 let mobileBufferTicking = false;
+let catalogRealCards = null; // captured ONCE at init — the permanent source of truth for cloning
 
 function getCardWidth(track) {
     const firstCard = track.querySelector('.catalog-card');
@@ -134,6 +135,14 @@ function initSeamlessCatalog() {
     const realCards = Array.from(track.querySelectorAll('.catalog-card'));
     if (realCards.length === 0) return;
 
+    // Capture the real cards ONCE, here, and never re-derive this list later.
+    // Pruning removes DOM elements from the front over time, and once the
+    // *original* real elements themselves got pruned, re-querying
+    // ':not(.cloned)' would return nothing — silently breaking all future
+    // cloning forever. Keeping a stable JS reference means we always have
+    // a valid template to clone from, no matter what's been removed from the DOM.
+    catalogRealCards = realCards;
+
     // Seed with a couple of extra sets so there's already buffer before the
     // scroll listener has fired even once (desktop's single-clone wrap also
     // relies on at least one clone set existing).
@@ -154,9 +163,9 @@ function maintainInfiniteBuffer() {
     const cardWidth = getCardWidth(track);
     if (!cardWidth) return; // not laid out yet — try again on next scroll/tick
 
-    const realCards = Array.from(track.querySelectorAll('.catalog-card:not(.cloned)'));
-    if (realCards.length === 0) return;
-    const setWidth = realCards.length * cardWidth;
+    if (!catalogRealCards || catalogRealCards.length === 0) return;
+    const setSize = catalogRealCards.length;
+    const setWidth = setSize * cardWidth;
     if (!setWidth) return;
 
     // 1. Append ahead: keep at least 2 screens of content beyond the viewport.
@@ -165,7 +174,7 @@ function maintainInfiniteBuffer() {
         track.scrollWidth - (container.scrollLeft + container.clientWidth) < container.clientWidth * 2 &&
         guard < 25
     ) {
-        cloneCardSet(track, realCards);
+        cloneCardSet(track, catalogRealCards);
         guard++;
     }
 
@@ -173,16 +182,24 @@ function maintainInfiniteBuffer() {
     // remove that set from the front and shift scrollLeft to compensate —
     // this is instant and invisible since the removed content was already
     // off-screen to the left.
+    //
+    // CRITICAL: only ever remove elements with the 'cloned' class. The
+    // original real cards must never be deleted — they're the permanent
+    // template everything else is cloned from, and deleting them was the
+    // bug that made cloning silently stop after a few loops.
     guard = 0;
     while (container.scrollLeft > setWidth + container.clientWidth * 2 && guard < 25) {
+        const firstEl = track.firstElementChild;
+        if (!firstEl || !firstEl.classList.contains('cloned')) break; // never touch real cards
+
         let removedWidth = 0;
-        for (let i = 0; i < realCards.length; i++) {
+        for (let i = 0; i < setSize; i++) {
             const el = track.firstElementChild;
-            if (!el) break;
+            if (!el || !el.classList.contains('cloned')) break; // stop the instant we'd hit a real card
             removedWidth += cardWidth;
             track.removeChild(el);
         }
-        if (removedWidth === 0) break; // nothing left to remove — bail out safely
+        if (removedWidth === 0) break; // nothing safe left to remove — bail out
         container.scrollLeft -= removedWidth;
         guard++;
     }
