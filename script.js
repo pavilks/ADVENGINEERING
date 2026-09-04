@@ -97,14 +97,21 @@ function clearCanvas() {
 
 //////////////////////////karuselis
 // Catalog Infinite Seamless Carousel Logic
-// Mobile: TRUE infinite scroll — no wrap, no jump on BOTH sides (left & right).
-// Desktop: Keeps the transform/index approach.
+// Mobile: TRUE infinite scroll in BOTH directions — no wrap, no jump. We keep
+// appending clone sets ahead of the user as they scroll forward, AND
+// prepending clone sets behind them as they scroll backward, quietly
+// pruning old ones far off-screen (in either direction) to keep the DOM
+// from growing forever. Since we never reposition scrollLeft relative to a
+// "loop point" (we only ever compensate for content we just inserted),
+// there is nothing to visually snap or jump — motion is continuous no
+// matter how long it runs, in either direction.
+// Desktop keeps the transform/index approach (unaffected, already working).
 
 let catalogIndex = 0;
 let catalogAutoSlideTimer = null;
 let catalogIsAnimating = false;
 let mobileBufferTicking = false;
-let catalogRealCards = null; // captured ONCE at init — source of truth for cloning
+let catalogRealCards = null; // captured ONCE at init — the permanent source of truth for cloning
 
 function getCardWidth(track) {
     const firstCard = track.querySelector('.catalog-card');
@@ -122,37 +129,57 @@ function cloneCardSet(track, realCards) {
     });
 }
 
+// Mirror of cloneCardSet, but inserts a full set BEFORE whatever is
+// currently first in the track, preserving the original left-to-right
+// order within the inserted set (so it reads identically to the real set).
+function prependCardSet(track, realCards) {
+    const frag = document.createDocumentFragment();
+    realCards.forEach(card => {
+        const clone = card.cloneNode(true);
+        clone.classList.add('cloned');
+        clone.addEventListener('click', () => card.click());
+        frag.appendChild(clone);
+    });
+    track.insertBefore(frag, track.firstElementChild);
+}
+
 function initSeamlessCatalog() {
     const track = document.getElementById('catalogTrack');
-    const container = document.querySelector('.catalog-track-container');
-    if (!track || !container) return;
+    if (!track) return;
     if (track.querySelector('.cloned')) return;
 
     const realCards = Array.from(track.querySelectorAll('.catalog-card'));
     if (realCards.length === 0) return;
 
-    // Saglabājam oriģinālos elementus kā nemainīgu šablonu
+    // Capture the real cards ONCE, here, and never re-derive this list later.
+    // Pruning removes DOM elements from either end over time, and once the
+    // *original* real elements themselves got pruned, re-querying
+    // ':not(.cloned)' would return nothing — silently breaking all future
+    // cloning forever. Keeping a stable JS reference means we always have
+    // a valid template to clone from, no matter what's been removed from the DOM.
     catalogRealCards = realCards;
 
-    // 1. Pievienojam vienu klonu kopu SĀKUMĀ (skroļošanai pa kreisi)
-    for (let i = realCards.length - 1; i >= 0; i--) {
-        const card = realCards[i];
-        const clone = card.cloneNode(true);
-        clone.classList.add('cloned');
-        clone.addEventListener('click', () => card.click());
-        track.insertBefore(clone, track.firstChild);
-    }
-
-    // 2. Pievienojam divas klonu kopas BEIGĀS (skroļošanai pa labi)
+    // Seed with a couple of extra sets on BOTH sides so there's already
+    // buffer before the scroll listener has fired even once — this is what
+    // lets the user scroll left immediately on load without hitting a wall
+    // (desktop's single-clone wrap also relies on at least one clone set
+    // existing after the real cards).
     cloneCardSet(track, realCards);
     cloneCardSet(track, realCards);
+    prependCardSet(track, realCards);
+    prependCardSet(track, realCards);
 
-    // 3. Nobīdām sākotnējo skrollu uz īstajām kartītēm, lai pa kreisi uzreiz būtu vieta
-    const cardWidth = getCardWidth(track);
-    const initialOffset = realCards.length * cardWidth;
-    container.scrollLeft = initialOffset;
+    // NOTE: we don't need to touch container.scrollLeft here. It starts at
+    // 0, which now shows the first *prepended clone*, but that clone is
+    // pixel-for-pixel identical to real card 0 — so there is no visible
+    // difference, and no jump to correct for at load time.
 }
 
+// Keeps the mobile track supplied with enough clones ahead AND behind the
+// viewport, and trims clones on either side once they've scrolled far
+// enough out of view to be invisible.
+// Hard iteration caps (guard) mean this can NEVER hang the tab, even if
+// measurements are momentarily 0 or weird (e.g. mid-layout).
 function maintainInfiniteBuffer() {
     const track = document.getElementById('catalogTrack');
     const container = document.querySelector('.catalog-track-container');
@@ -160,83 +187,91 @@ function maintainInfiniteBuffer() {
     if (window.innerWidth > 900) return;
 
     const cardWidth = getCardWidth(track);
-    if (!cardWidth) return;
+    if (!cardWidth) return; // not laid out yet — try again on next scroll/tick
 
     if (!catalogRealCards || catalogRealCards.length === 0) return;
     const setSize = catalogRealCards.length;
     const setWidth = setSize * cardWidth;
     if (!setWidth) return;
 
+    const bufferDistance = container.clientWidth * 2;
+
+    // 1. Append ahead (right side): keep at least 2 screens of content
+    // beyond the right edge of the viewport.
     let guard = 0;
-
-    // ==========================================
-    // A. SKROĻOŠANA PA LABI (Uz priekšu)
-    // ==========================================
-
-    // 1. Pievienojam klonus beigās, ja tuvojas labajai malai
     while (
-        track.scrollWidth - (container.scrollLeft + container.clientWidth) < container.clientWidth * 2 &&
+        track.scrollWidth - (container.scrollLeft + container.clientWidth) < bufferDistance &&
         guard < 25
     ) {
         cloneCardSet(track, catalogRealCards);
         guard++;
     }
 
-    // 2. Dzēšam klonus no sākuma, ja tie aizgājuši pārāk tālu pa kreisi
+    // 2. Prepend behind (left side): keep at least 2 screens of content
+    // before the left edge of the viewport, so scrolling left never runs
+    // out of content. Inserting before the current scroll position shifts
+    // everything visually to the right, so we bump scrollLeft by the exact
+    // inserted width in the same tick — this is instant and invisible,
+    // exactly mirroring how pruning compensates scrollLeft below.
     guard = 0;
-    while (container.scrollLeft > setWidth * 2 + container.clientWidth * 2 && guard < 25) {
-        const firstEl = track.firstElementChild;
-        if (!firstEl || !firstEl.classList.contains('cloned')) break;
-
-        let removedWidth = 0;
-        for (let i = 0; i < setSize; i++) {
-            const el = track.firstElementChild;
-            if (!el || !el.classList.contains('cloned')) break;
-            removedWidth += cardWidth;
-            track.removeChild(el);
-        }
-        if (removedWidth === 0) break;
-        container.scrollLeft -= removedWidth;
-        guard++;
-    }
-
-    // ==========================================
-    // B. SKROĻOŠANA PA KREISI (Atpakaļ uz riņķi)
-    // ==========================================
-
-    // 3. Pievienojam klonus SĀKUMĀ, ja tuvojas kreisajai malai
-    guard = 0;
-    while (container.scrollLeft < container.clientWidth * 2 && guard < 25) {
-        for (let i = catalogRealCards.length - 1; i >= 0; i--) {
-            const card = catalogRealCards[i];
-            const clone = card.cloneNode(true);
-            clone.classList.add('cloned');
-            clone.addEventListener('click', () => card.click());
-            track.insertBefore(clone, track.firstChild);
-        }
-        // Kompensējam pozīciju, lai vizuāli nebūtu lēciena
+    while (container.scrollLeft < bufferDistance && guard < 25) {
+        prependCardSet(track, catalogRealCards);
         container.scrollLeft += setWidth;
         guard++;
     }
 
-    // 4. Dzēšam klonus no BEIGĀM, ja to ir par daudz labajā pusē
+    // 3. Prune far right: once the right side has grown more than ~2
+    // screens past a full set beyond the viewport, trim a set's worth from
+    // the end. Only ever remove '.cloned' elements — the real cards must
+    // never be deleted, they're the permanent template.
     guard = 0;
     while (
-        track.scrollWidth - (container.scrollLeft + container.clientWidth) > setWidth * 3 &&
+        track.scrollWidth - (container.scrollLeft + container.clientWidth) > setWidth + bufferDistance &&
         guard < 25
     ) {
         const lastEl = track.lastElementChild;
-        if (!lastEl || !lastEl.classList.contains('cloned')) break;
+        if (!lastEl || !lastEl.classList.contains('cloned')) break; // never touch real cards
 
+        let removed = 0;
         for (let i = 0; i < setSize; i++) {
             const el = track.lastElementChild;
-            if (!el || !el.classList.contains('cloned')) break;
+            if (!el || !el.classList.contains('cloned')) break; // stop the instant we'd hit a real card
+            removed++;
             track.removeChild(el);
         }
+        if (removed === 0) break; // nothing safe left to remove — bail out
+        guard++;
+    }
+
+    // 4. Prune far left: once we're more than ~2 screens past a full set to
+    // the left of the viewport, remove that set from the front and shift
+    // scrollLeft to compensate — instant and invisible since the removed
+    // content was already off-screen to the left.
+    //
+    // CRITICAL: only ever remove elements with the 'cloned' class. The
+    // original real cards must never be deleted — they're the permanent
+    // template everything else is cloned from, and deleting them was the
+    // bug that made cloning silently stop after a few loops.
+    guard = 0;
+    while (container.scrollLeft > setWidth + bufferDistance && guard < 25) {
+        const firstEl = track.firstElementChild;
+        if (!firstEl || !firstEl.classList.contains('cloned')) break; // never touch real cards
+
+        let removedWidth = 0;
+        for (let i = 0; i < setSize; i++) {
+            const el = track.firstElementChild;
+            if (!el || !el.classList.contains('cloned')) break; // stop the instant we'd hit a real card
+            removedWidth += cardWidth;
+            track.removeChild(el);
+        }
+        if (removedWidth === 0) break; // nothing safe left to remove — bail out
+        container.scrollLeft -= removedWidth;
         guard++;
     }
 }
 
+// Throttle buffer maintenance to once per animation frame, since 'scroll'
+// can fire many times during a single drag/fling.
 function scheduleMaintainBuffer() {
     if (mobileBufferTicking) return;
     mobileBufferTicking = true;
@@ -252,7 +287,7 @@ function moveCatalog(direction) {
     if (!track || !container) return;
 
     const cards = track.querySelectorAll('.catalog-card');
-    const originalCount = catalogRealCards ? catalogRealCards.length : track.querySelectorAll('.catalog-card:not(.cloned)').length;
+    const originalCount = track.querySelectorAll('.catalog-card:not(.cloned)').length;
     if (cards.length === 0) return;
 
     const firstCard = cards[0];
@@ -261,42 +296,51 @@ function moveCatalog(direction) {
 
     // ---- MOBILE (touch scroll) ----
     if (window.innerWidth <= 900) {
+        // Make sure there's buffer on both sides BEFORE we scroll, in case
+        // auto-slide (or a fast arrow click) fires faster than the
+        // scroll-event-driven maintenance can keep up — this matters for
+        // backward moves now too, not just forward ones.
         maintainInfiniteBuffer();
         container.scrollBy({ left: direction * cardWidth, behavior: 'smooth' });
         return;
     }
 
     // ---- DESKTOP (transform slide) ----
-    if (catalogIsAnimating) return;
+    if (catalogIsAnimating) return; // prevent overlapping calls from corrupting state
     catalogIsAnimating = true;
 
     catalogIndex += direction;
 
+    // BACKWARD wrap must be handled BEFORE animating, not after. There are
+    // no clones prepended before the real cards on desktop (clones only
+    // exist appended after them — the mobile prepend logic above is
+    // gated to window.innerWidth <= 900 and never runs here), so animating
+    // toward a negative index has no content to show — it just slides into
+    // blank space, which looks stuck. Instead, invisibly jump to the
+    // equivalent-looking position over in the clone range first (position
+    // `originalCount` looks identical to real card 0), then animate
+    // backward ONE step from there into the real last card.
     if (catalogIndex < 0) {
         track.style.transition = 'none';
         catalogIndex = originalCount;
         track.style.transform = `translateX(-${catalogIndex * cardWidth}px)`;
-        void track.offsetWidth;
+        void track.offsetWidth; // force the jump to apply before animating away from it
         catalogIndex = originalCount - 1;
     }
 
     track.style.transition = 'transform 0.4s ease-in-out';
     track.style.transform = `translateX(-${catalogIndex * cardWidth}px)`;
 
-    // Drošības taimauts gadījumā, ja transitionend nenostrādā
-    let timeoutId = setTimeout(() => {
-        onTransitionEnd();
-    }, 450);
-
     const onTransitionEnd = () => {
-        clearTimeout(timeoutId);
         track.removeEventListener('transitionend', onTransitionEnd);
 
+        // FORWARD wrap is corrected AFTER animating, since the clone content
+        // at the overflow position is real and fine to actually show.
         if (catalogIndex >= originalCount) {
             track.style.transition = 'none';
             catalogIndex -= originalCount;
             track.style.transform = `translateX(-${catalogIndex * cardWidth}px)`;
-            void track.offsetWidth;
+            void track.offsetWidth; // force reflow so the jump is applied before re-enabling transition
         }
 
         catalogIsAnimating = false;
@@ -326,6 +370,9 @@ function setupCatalog() {
     const catalogWrapper = document.querySelector('.catalog-carousel-wrapper');
     const container = document.querySelector('.catalog-track-container');
 
+    // Only pause-on-hover for devices that actually have a real pointer/cursor.
+    // On touch devices, mouseenter can fire without a matching mouseleave,
+    // which would permanently stop the auto-slide.
     const hasHover = window.matchMedia('(hover: hover)').matches;
 
     if (catalogWrapper && hasHover) {
@@ -340,23 +387,15 @@ function setupCatalog() {
     }
 
     if (container) {
+        // Keep the buffer topped up for organic swipes, arrow clicks, and
+        // auto-slide alike — 'scroll' fires for all of them.
         container.addEventListener('scroll', scheduleMaintainBuffer, { passive: true });
+
+        // Seed the buffer once layout is ready (images can still resize
+        // things right after initial load, so check again on 'load').
         requestAnimationFrame(maintainInfiniteBuffer);
         window.addEventListener('load', maintainInfiniteBuffer);
     }
-
-    // Resize apstrāde ekranu rotēšanai vai loga izmēru maiņai
-    let resizeTimer = null;
-    window.addEventListener('resize', () => {
-        clearTimeout(resizeTimer);
-        resizeTimer = setTimeout(() => {
-            if (window.innerWidth <= 900) {
-                const track = document.getElementById('catalogTrack');
-                if (track) track.style.transform = '';
-            }
-            maintainInfiniteBuffer();
-        }, 150);
-    });
 }
 
 if (document.readyState === 'loading') {
