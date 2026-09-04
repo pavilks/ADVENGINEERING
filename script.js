@@ -110,12 +110,20 @@ function initSeamlessCatalog() {
     const cards = Array.from(track.querySelectorAll('.catalog-card'));
     if (cards.length === 0) return;
 
-    cards.forEach(card => {
-        const clone = card.cloneNode(true);
-        clone.classList.add('cloned');
-        clone.addEventListener('click', () => card.click());
-        track.appendChild(clone);
-    });
+    // Clone TWICE (3 copies total: real, clone1, clone2). A single clone set
+    // only gives a buffer in one direction — a fast flick can jump scrollLeft
+    // far enough in one tick to reach the true physical end of the track
+    // before the wrap-correction runs. Starting the view in the middle copy
+    // (see setupCatalog) means there's always a full extra screen of content
+    // on both sides to absorb an overshoot before that can happen.
+    for (let rep = 0; rep < 2; rep++) {
+        cards.forEach(card => {
+            const clone = card.cloneNode(true);
+            clone.classList.add('cloned');
+            clone.addEventListener('click', () => card.click());
+            track.appendChild(clone);
+        });
+    }
 }
 
 function moveCatalog(direction) {
@@ -216,21 +224,32 @@ function setupCatalog() {
     // finger swipes, arrow-button clicks, and auto-slide. This is the only
     // place scrollLeft ever gets corrected, so there's no conflicting logic.
     //
-    // IMPORTANT: correct on every scroll tick, immediately — do NOT wait for
-    // the scroll to settle. Waiting (e.g. via setTimeout/debounce) makes the
-    // correction happen as a separate, later motion, which is what reads as
-    // "jumping back to section 1". Since the clone section is a pixel-exact
-    // copy of the real section, subtracting maxScroll the instant we cross
-    // it lands on visually identical content — imperceptible, not a jump.
+    // Track is now 3 copies wide (real, clone1, clone2). We start centered in
+    // the middle copy so there's a full section-width of buffer on each side.
+    // Correct with a while-loop (not a single if) so that even a big single
+    // scroll-event jump — e.g. from fast momentum flicking — gets fully
+    // resolved back into the middle copy in one pass, instead of needing a
+    // second scroll event that might never come because we've hit the edge.
     if (container) {
+        const recenter = () => {
+            if (window.innerWidth > 900) return;
+            container.scrollLeft = container.scrollWidth / 3;
+        };
+
+        // Start centered once layout has settled (images etc. can still
+        // shift widths right after load, so measure on the next frame).
+        requestAnimationFrame(recenter);
+        window.addEventListener('load', recenter);
+
         container.addEventListener('scroll', () => {
             if (window.innerWidth > 900) return;
 
-            const maxScroll = container.scrollWidth / 2;
-            if (container.scrollLeft >= maxScroll) {
-                container.scrollLeft -= maxScroll;
-            } else if (container.scrollLeft < 0) {
-                container.scrollLeft += maxScroll;
+            const sectionWidth = container.scrollWidth / 3;
+            while (container.scrollLeft >= sectionWidth * 2) {
+                container.scrollLeft -= sectionWidth;
+            }
+            while (container.scrollLeft < 0) {
+                container.scrollLeft += sectionWidth;
             }
         }, { passive: true });
     }
