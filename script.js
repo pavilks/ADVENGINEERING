@@ -97,16 +97,18 @@ function clearCanvas() {
 
 //////////////////////////karuselis
 
+// Catalog Infinite Seamless Carousel Logic (fixed: no more sticking after loop 2)
 let catalogIndex = 0;
 let catalogAutoSlideTimer = null;
-let catalogResetting = false;
+let catalogIsAnimating = false;
 
 function initSeamlessCatalog() {
     const track = document.getElementById('catalogTrack');
-    if (!track || track.querySelector('.cloned')) return;
+    if (!track) return;
+    if (track.querySelector('.cloned')) return;
 
     const cards = Array.from(track.querySelectorAll('.catalog-card'));
-    if (!cards.length) return;
+    if (cards.length === 0) return;
 
     cards.forEach(card => {
         const clone = card.cloneNode(true);
@@ -116,63 +118,72 @@ function initSeamlessCatalog() {
     });
 }
 
-function getCatalogStep() {
-    const track = document.getElementById('catalogTrack');
-    const card = track?.querySelector('.catalog-card');
-    if (!card) return 0;
-
-    const gap = parseFloat(getComputedStyle(track).gap) || 0;
-    return card.getBoundingClientRect().width + gap;
-}
-
 function moveCatalog(direction) {
     const track = document.getElementById('catalogTrack');
     const container = document.querySelector('.catalog-track-container');
     if (!track || !container) return;
 
+    const cards = track.querySelectorAll('.catalog-card');
     const originalCount = track.querySelectorAll('.catalog-card:not(.cloned)').length;
-    const step = getCatalogStep();
-    if (!originalCount || !step) return;
+    if (cards.length === 0) return;
 
-    // MOBILĀ VERSIJA
+    const firstCard = cards[0];
+    const gap = parseInt(window.getComputedStyle(track).gap) || 12;
+    const cardWidth = firstCard.offsetWidth + gap;
+
+    // ---- MOBILE (touch scroll) ----
     if (window.innerWidth <= 900) {
-        const cycleWidth = originalCount * step;
-        let target = container.scrollLeft + direction * step;
+        const maxScroll = container.scrollWidth / 2; // half is real, half is clones
 
-        if (target >= cycleWidth * 1.5) {
-            container.scrollLeft -= cycleWidth;
-            target -= cycleWidth;
-        } else if (target <= cycleWidth * 0.5) {
-            container.scrollLeft += cycleWidth;
-            target += cycleWidth;
+        // Single source of truth for wrapping — do it BEFORE scrolling,
+        // and only here (the old scroll-listener reset is removed to stop the conflict).
+        if (direction > 0 && container.scrollLeft >= maxScroll - cardWidth / 2) {
+            container.scrollLeft -= maxScroll;
+        } else if (direction < 0 && container.scrollLeft <= cardWidth / 2) {
+            container.scrollLeft += maxScroll;
         }
 
-        container.scrollTo({ left: target, behavior: 'smooth' });
+        container.scrollBy({ left: direction * cardWidth, behavior: 'smooth' });
         return;
     }
 
-    // DESKTOP VERSIJA
+    // ---- DESKTOP (transform slide) ----
+    if (catalogIsAnimating) return; // prevent overlapping calls from corrupting state
+    catalogIsAnimating = true;
+
     catalogIndex += direction;
 
-    if (catalogIndex >= originalCount * 2) {
-        track.style.transition = 'none';
-        catalogIndex -= originalCount;
-        track.style.transform = `translate3d(-${catalogIndex * step}px,0,0)`;
-        void track.offsetWidth;
-    } else if (catalogIndex < 0) {
-        track.style.transition = 'none';
-        catalogIndex += originalCount;
-        track.style.transform = `translate3d(-${catalogIndex * step}px,0,0)`;
-        void track.offsetWidth;
-    }
-
     track.style.transition = 'transform 0.4s ease-in-out';
-    track.style.transform = `translate3d(-${catalogIndex * step}px,0,0)`;
+    track.style.transform = `translateX(-${catalogIndex * cardWidth}px)`;
+
+    const onTransitionEnd = () => {
+        track.removeEventListener('transitionend', onTransitionEnd);
+
+        // Once the animation into the clone has actually been SEEN,
+        // snap invisibly back to the matching real card.
+        if (catalogIndex >= originalCount) {
+            track.style.transition = 'none';
+            catalogIndex -= originalCount;
+            track.style.transform = `translateX(-${catalogIndex * cardWidth}px)`;
+            void track.offsetWidth; // force reflow so the jump is applied before re-enabling transition
+        } else if (catalogIndex < 0) {
+            track.style.transition = 'none';
+            catalogIndex += originalCount;
+            track.style.transform = `translateX(-${catalogIndex * cardWidth}px)`;
+            void track.offsetWidth;
+        }
+
+        catalogIsAnimating = false;
+    };
+
+    track.addEventListener('transitionend', onTransitionEnd);
 }
 
 function startCatalogAutoSlide() {
     stopCatalogAutoSlide();
-    catalogAutoSlideTimer = setInterval(() => moveCatalog(1), 3000);
+    catalogAutoSlideTimer = setInterval(() => {
+        moveCatalog(1);
+    }, 3000);
 }
 
 function stopCatalogAutoSlide() {
@@ -189,29 +200,27 @@ function setupCatalog() {
     const catalogWrapper = document.querySelector('.catalog-carousel-wrapper');
     const container = document.querySelector('.catalog-track-container');
 
-    if (catalogWrapper) {
+    // Only pause-on-hover for devices that actually have a real pointer/cursor.
+    // This is the key fix: on touch devices, mouseenter can fire without a
+    // matching mouseleave, which permanently stopped the auto-slide before.
+    const hasHover = window.matchMedia('(hover: hover)').matches;
+
+    if (catalogWrapper && hasHover) {
         catalogWrapper.addEventListener('mouseenter', stopCatalogAutoSlide);
         catalogWrapper.addEventListener('mouseleave', startCatalogAutoSlide);
     }
 
-    if (container) {
-        container.addEventListener('scroll', () => {
-            if (window.innerWidth > 900 || catalogResetting) return;
-
-            const originalCount = container.querySelectorAll('.catalog-card:not(.cloned)').length;
-            const cycleWidth = originalCount * getCatalogStep();
-
-            if (container.scrollLeft >= cycleWidth * 1.5) {
-                catalogResetting = true;
-                container.scrollLeft -= cycleWidth;
-                requestAnimationFrame(() => catalogResetting = false);
-            } else if (container.scrollLeft <= cycleWidth * 0.5) {
-                catalogResetting = true;
-                container.scrollLeft += cycleWidth;
-                requestAnimationFrame(() => catalogResetting = false);
-            }
-        });
+    // On touch devices, pause only while the user is actively touching/swiping,
+    // and always resume afterward.
+    if (catalogWrapper && !hasHover) {
+        catalogWrapper.addEventListener('touchstart', stopCatalogAutoSlide, { passive: true });
+        catalogWrapper.addEventListener('touchend', startCatalogAutoSlide, { passive: true });
+        catalogWrapper.addEventListener('touchcancel', startCatalogAutoSlide, { passive: true });
     }
+
+    // Note: the old scroll-listener-based reset for mobile has been removed.
+    // moveCatalog() now owns wrapping on its own, so the two mechanisms can't
+    // fight each other and leave scrollLeft stuck between thresholds.
 }
 
 if (document.readyState === 'loading') {
@@ -219,7 +228,6 @@ if (document.readyState === 'loading') {
 } else {
     setupCatalog();
 }
-        
 
 
 ////////////////////////dialogs 
