@@ -97,7 +97,6 @@ function clearCanvas() {
 
 //////////////////////////karuselis
 
-```javascript
 // ============================================================
 // CATALOG — INFINITE SEAMLESS CAROUSEL
 // Desktop + Mobile
