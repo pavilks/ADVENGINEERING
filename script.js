@@ -97,7 +97,7 @@ function clearCanvas() {
 
 //////////////////////////karuselis
 
-  let catalogIndex = 0;
+let catalogIndex = 0;
 let catalogAutoSlideTimer = null;
 let catalogResetting = false;
 
@@ -106,7 +106,7 @@ function initSeamlessCatalog() {
     if (!track || track.querySelector('.cloned')) return;
 
     const cards = Array.from(track.querySelectorAll('.catalog-card'));
-    if (cards.length === 0) return;
+    if (!cards.length) return;
 
     cards.forEach(card => {
         const clone = card.cloneNode(true);
@@ -121,7 +121,7 @@ function getCatalogStep() {
     const card = track?.querySelector('.catalog-card');
     if (!card) return 0;
 
-    const gap = parseFloat(window.getComputedStyle(track).gap) || 0;
+    const gap = parseFloat(getComputedStyle(track).gap) || 0;
     return card.getBoundingClientRect().width + gap;
 }
 
@@ -139,30 +139,31 @@ function moveCatalog(direction) {
         const cycleWidth = originalCount * step;
         let target = container.scrollLeft + direction * step;
 
-        if (target >= cycleWidth) target -= cycleWidth;
-        if (target < 0) target += cycleWidth;
+        if (target >= cycleWidth * 1.5) {
+            container.scrollLeft -= cycleWidth;
+            target -= cycleWidth;
+        } else if (target <= cycleWidth * 0.5) {
+            container.scrollLeft += cycleWidth;
+            target += cycleWidth;
+        }
 
-        catalogResetting = true;
         container.scrollTo({ left: target, behavior: 'smooth' });
-        setTimeout(() => catalogResetting = false, 450);
         return;
     }
 
     // DESKTOP VERSIJA
     catalogIndex += direction;
 
-    if (catalogIndex >= originalCount) {
+    if (catalogIndex >= originalCount * 2) {
         track.style.transition = 'none';
-        catalogIndex = 0;
-        track.style.transform = 'translate3d(0,0,0)';
-        void track.offsetWidth;
-        catalogIndex = 1;
-    } else if (catalogIndex < 0) {
-        track.style.transition = 'none';
-        catalogIndex = originalCount;
+        catalogIndex -= originalCount;
         track.style.transform = `translate3d(-${catalogIndex * step}px,0,0)`;
         void track.offsetWidth;
-        catalogIndex = originalCount - 1;
+    } else if (catalogIndex < 0) {
+        track.style.transition = 'none';
+        catalogIndex += originalCount;
+        track.style.transform = `translate3d(-${catalogIndex * step}px,0,0)`;
+        void track.offsetWidth;
     }
 
     track.style.transition = 'transform 0.4s ease-in-out';
@@ -200,9 +201,13 @@ function setupCatalog() {
             const originalCount = container.querySelectorAll('.catalog-card:not(.cloned)').length;
             const cycleWidth = originalCount * getCatalogStep();
 
-            if (container.scrollLeft >= cycleWidth) {
+            if (container.scrollLeft >= cycleWidth * 1.5) {
                 catalogResetting = true;
                 container.scrollLeft -= cycleWidth;
+                requestAnimationFrame(() => catalogResetting = false);
+            } else if (container.scrollLeft <= cycleWidth * 0.5) {
+                catalogResetting = true;
+                container.scrollLeft += cycleWidth;
                 requestAnimationFrame(() => catalogResetting = false);
             }
         });
@@ -214,7 +219,6 @@ if (document.readyState === 'loading') {
 } else {
     setupCatalog();
 }
-
         
 
 
