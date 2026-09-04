@@ -97,131 +97,550 @@ function clearCanvas() {
 
 //////////////////////////karuselis
 
-// Catalog Infinite Seamless Carousel Logic (Atrisināta atduršanās un bloķēšanās)
-let catalogIndex = 0;
+```javascript
+// ============================================================
+// CATALOG — INFINITE SEAMLESS CAROUSEL
+// Desktop + Mobile
+// Auto-slide + arrows + touch/mouse scroll
+// ============================================================
+
 let catalogAutoSlideTimer = null;
+let catalogIsDragging = false;
+let catalogStartX = 0;
+let catalogStartScroll = 0;
+let catalogIsAdjusting = false;
+
+const CATALOG_CONFIG = {
+    autoSlideDelay: 3000,
+    animationDuration: 400,
+    swipeThreshold: 40,
+    mobileBreakpoint: 900
+};
+
+
+// ============================================================
+// INIT
+// ============================================================
 
 function initSeamlessCatalog() {
     const track = document.getElementById('catalogTrack');
+
     if (!track) return;
 
-    if (track.querySelector('.cloned')) return;
+    // Ja jau inicializēts, neko nedarām
+    if (track.dataset.infiniteReady === 'true') return;
 
-    const cards = Array.from(track.querySelectorAll('.catalog-card'));
-    if (cards.length === 0) return;
+    const originalCards = Array.from(
+        track.querySelectorAll('.catalog-card:not(.cloned)')
+    );
 
-    // Klonējam visas kartītes, lai izveidotu 2 pilnus ciklus
-    cards.forEach(card => {
-        const clone = card.cloneNode(true);
-        clone.classList.add('cloned');
-        // Pārliecināmies, ka uz klona var uzklikšķināt
-        clone.addEventListener('click', () => {
-            card.click();
-        });
-        track.appendChild(clone);
+    if (!originalCards.length) return;
+
+    // Notīrām iepriekšējos klonus, ja tādi eksistē
+    track.querySelectorAll('.cloned').forEach(clone => clone.remove());
+
+    /*
+     * Izveidojam:
+     *
+     * [ COPY 1 ][ ORIGINAL ][ COPY 3 ]
+     *
+     * Tas ļauj kustēties gan pa labi, gan pa kreisi
+     * un pēc tam nemanāmi pāriet atpakaļ uz vidējo kopiju.
+     */
+
+    const fragmentBefore = document.createDocumentFragment();
+    const fragmentAfter = document.createDocumentFragment();
+
+    originalCards.forEach(card => {
+        const cloneBefore = card.cloneNode(true);
+        cloneBefore.classList.add('cloned', 'catalog-clone-before');
+
+        const cloneAfter = card.cloneNode(true);
+        cloneAfter.classList.add('cloned', 'catalog-clone-after');
+
+        fragmentBefore.appendChild(cloneBefore);
+        fragmentAfter.appendChild(cloneAfter);
+    });
+
+    track.insertBefore(fragmentBefore, track.firstChild);
+    track.appendChild(fragmentAfter);
+
+    track.dataset.infiniteReady = 'true';
+
+    // Pēc renderēšanas novietojamies vidējā kopijā
+    requestAnimationFrame(() => {
+        centerCatalog();
     });
 }
 
-function moveCatalog(direction) {
+
+// ============================================================
+// HELPERS
+// ============================================================
+
+function getCatalogElements() {
     const track = document.getElementById('catalogTrack');
     const container = document.querySelector('.catalog-track-container');
-    if (!track || !container) return;
 
-    const cards = track.querySelectorAll('.catalog-card');
-    const originalCount = track.querySelectorAll('.catalog-card:not(.cloned)').length;
-    if (cards.length === 0) return;
+    if (!track || !container) return null;
 
-    // Aprēķinām precīzu kartītes platumu kopā ar gap
-    const firstCard = cards[0];
-    const gap = parseInt(window.getComputedStyle(track).gap) || 12;
-    const cardWidth = firstCard.offsetWidth + gap;
+    return { track, container };
+}
 
-    // 1. MOBILĀS IERĪCES (Manual Touch Swipe & Auto)
-    if (window.innerWidth <= 900) {
-        const maxScroll = container.scrollWidth / 2; // Puse ir īstās, puse kloni
-        
-        if (direction > 0 && container.scrollLeft >= maxScroll - 5) {
-            container.scrollLeft = 0; // Nemanāmi atgriežas sākumā
-        } else if (direction < 0 && container.scrollLeft <= 5) {
-            container.scrollLeft = maxScroll;
-        }
-        
-        container.scrollBy({ left: direction * cardWidth, behavior: 'smooth' });
+
+function getCatalogCardStep() {
+    const { track } = getCatalogElements() || {};
+
+    if (!track) return 0;
+
+    const card = track.querySelector('.catalog-card');
+
+    if (!card) return 0;
+
+    const styles = window.getComputedStyle(track);
+
+    const gap =
+        parseFloat(styles.columnGap) ||
+        parseFloat(styles.gap) ||
+        0;
+
+    return card.getBoundingClientRect().width + gap;
+}
+
+
+function getOriginalCount() {
+    const track = document.getElementById('catalogTrack');
+
+    if (!track) return 0;
+
+    return track.querySelectorAll(
+        '.catalog-card:not(.cloned)'
+    ).length;
+}
+
+
+function getCycleWidth() {
+    const step = getCatalogCardStep();
+    const count = getOriginalCount();
+
+    return step * count;
+}
+
+
+// ============================================================
+// CENTER / INITIAL POSITION
+// ============================================================
+
+function centerCatalog() {
+    const { container } = getCatalogElements() || {};
+
+    if (!container) return;
+
+    const cycleWidth = getCycleWidth();
+
+    if (!cycleWidth) return;
+
+    /*
+     * Vidējā kopija sākas pēc pirmās pilnās kopijas.
+     */
+    container.scrollLeft = cycleWidth;
+}
+
+
+// ============================================================
+// INFINITE SCROLL CORRECTION
+// ============================================================
+
+function normalizeCatalogScroll() {
+    const { container } = getCatalogElements() || {};
+
+    if (!container || catalogIsAdjusting) return;
+
+    const cycleWidth = getCycleWidth();
+
+    if (!cycleWidth) return;
+
+    const current = container.scrollLeft;
+
+    /*
+     * Ja esam pārāk tālu pa labi,
+     * pārceļamies par vienu pilnu ciklu pa kreisi.
+     */
+    if (current >= cycleWidth * 2) {
+
+        catalogIsAdjusting = true;
+
+        container.scrollLeft = current - cycleWidth;
+
+        requestAnimationFrame(() => {
+            catalogIsAdjusting = false;
+        });
+
         return;
     }
 
-    // 2. DATORA VERSIJA (Bultiņas & Auto-slide)
-    catalogIndex += direction;
+    /*
+     * Ja esam pārāk tālu pa kreisi,
+     * pārceļamies par vienu pilnu ciklu pa labi.
+     */
+    if (current <= 0) {
 
-    // Ja sasniegti kloni galā, vispirms nemanāmi atlecam uz īsto sākumu
-    if (catalogIndex >= originalCount) {
-        track.style.transition = 'none';
-        catalogIndex = 0;
-        track.style.transform = `translateX(0px)`;
-        void track.offsetWidth; // Force Reflow
-        catalogIndex = 1; // Pārejam uz nākamo
-    } 
-    // Ja ejam atpakaļ garām sākumam
-    else if (catalogIndex < 0) {
-        track.style.transition = 'none';
-        catalogIndex = originalCount;
-        track.style.transform = `translateX(-${catalogIndex * cardWidth}px)`;
-        void track.offsetWidth;
-        catalogIndex = originalCount - 1;
+        catalogIsAdjusting = true;
+
+        container.scrollLeft = current + cycleWidth;
+
+        requestAnimationFrame(() => {
+            catalogIsAdjusting = false;
+        });
     }
-
-    // Bīdām ar plūdeno animāciju
-    track.style.transition = 'transform 0.4s ease-in-out';
-    track.style.transform = `translateX(-${catalogIndex * cardWidth}px)`;
 }
+
+
+// ============================================================
+// SCROLL
+// ============================================================
+
+function setupCatalogScroll() {
+    const { container } = getCatalogElements() || {};
+
+    if (!container) return;
+
+    let scrollRaf = null;
+
+    container.addEventListener(
+        'scroll',
+        () => {
+
+            if (scrollRaf) return;
+
+            scrollRaf = requestAnimationFrame(() => {
+
+                normalizeCatalogScroll();
+
+                scrollRaf = null;
+            });
+        },
+        { passive: true }
+    );
+}
+
+
+// ============================================================
+// MOVE — WORKS BOTH DIRECTIONS
+// ============================================================
+
+function moveCatalog(direction = 1) {
+
+    const { container } = getCatalogElements() || {};
+
+    if (!container) return;
+
+    const step = getCatalogCardStep();
+
+    if (!step) return;
+
+    /*
+     * Neatkarīgi no desktop/mobile,
+     * kustam container scroll pozīciju.
+     *
+     * Tas novērš konfliktu starp:
+     * transform + scrollLeft.
+     */
+
+    container.scrollBy({
+        left: direction * step,
+        behavior: 'smooth'
+    });
+}
+
+
+// ============================================================
+// AUTO SLIDE
+// ============================================================
 
 function startCatalogAutoSlide() {
+
     stopCatalogAutoSlide();
+
     catalogAutoSlideTimer = setInterval(() => {
+
+        // Auto-slide darbojas arī mobilajā
         moveCatalog(1);
-    }, 3000);
+
+    }, CATALOG_CONFIG.autoSlideDelay);
 }
 
+
 function stopCatalogAutoSlide() {
+
     if (catalogAutoSlideTimer) {
+
         clearInterval(catalogAutoSlideTimer);
+
         catalogAutoSlideTimer = null;
     }
 }
 
-function setupCatalog() {
-    initSeamlessCatalog();
-    startCatalogAutoSlide();
 
-    const catalogWrapper = document.querySelector('.catalog-carousel-wrapper');
-    const container = document.querySelector('.catalog-track-container');
+// ============================================================
+// MOUSE / TOUCH DRAG
+// ============================================================
 
-    if (catalogWrapper) {
-        catalogWrapper.addEventListener('mouseenter', stopCatalogAutoSlide);
-        catalogWrapper.addEventListener('mouseleave', startCatalogAutoSlide);
-    }
+function setupCatalogDrag() {
 
-    // Papildus drošība mobilajam skrulēšanas ciklam (Pirksta pārvilkšanai)
-    if (container) {
-        container.addEventListener('scroll', () => {
-            if (window.innerWidth <= 900) {
-                const maxScroll = container.scrollWidth / 2;
-                if (container.scrollLeft >= maxScroll * 1.8) {
-                    container.scrollLeft = container.scrollLeft - maxScroll;
-                } else if (container.scrollLeft <= 0) {
-                    container.scrollLeft = maxScroll;
-                }
+    const { container } = getCatalogElements() || {};
+
+    if (!container) return;
+
+    /*
+     * Pointer Events darbojas:
+     * - mouse
+     * - touch
+     * - pen
+     */
+
+    container.addEventListener(
+        'pointerdown',
+        event => {
+
+            catalogIsDragging = true;
+
+            catalogStartX = event.clientX;
+            catalogStartScroll = container.scrollLeft;
+
+            container.classList.add('is-dragging');
+
+            stopCatalogAutoSlide();
+
+            try {
+                container.setPointerCapture(event.pointerId);
+            } catch (error) {}
+        }
+    );
+
+
+    container.addEventListener(
+        'pointermove',
+        event => {
+
+            if (!catalogIsDragging) return;
+
+            const distance =
+                event.clientX - catalogStartX;
+
+            container.scrollLeft =
+                catalogStartScroll - distance;
+        }
+    );
+
+
+    const endDrag = event => {
+
+        if (!catalogIsDragging) return;
+
+        catalogIsDragging = false;
+
+        container.classList.remove('is-dragging');
+
+        try {
+            container.releasePointerCapture(event.pointerId);
+        } catch (error) {}
+
+        normalizeCatalogScroll();
+
+        startCatalogAutoSlide();
+    };
+
+
+    container.addEventListener(
+        'pointerup',
+        endDrag
+    );
+
+    container.addEventListener(
+        'pointercancel',
+        endDrag
+    );
+
+    container.addEventListener(
+        'pointerleave',
+        event => {
+
+            if (
+                catalogIsDragging &&
+                event.pointerType === 'mouse'
+            ) {
+                endDrag(event);
             }
-        });
-    }
+        }
+    );
 }
+
+
+// ============================================================
+// HOVER — DESKTOP
+// ============================================================
+
+function setupCatalogHover() {
+
+    const wrapper =
+        document.querySelector('.catalog-carousel-wrapper');
+
+    if (!wrapper) return;
+
+    wrapper.addEventListener(
+        'mouseenter',
+        () => {
+            stopCatalogAutoSlide();
+        }
+    );
+
+    wrapper.addEventListener(
+        'mouseleave',
+        () => {
+            if (!catalogIsDragging) {
+                startCatalogAutoSlide();
+            }
+        }
+    );
+}
+
+
+// ============================================================
+// RESIZE
+// ============================================================
+
+function setupCatalogResize() {
+
+    let resizeTimer = null;
+
+    window.addEventListener(
+        'resize',
+        () => {
+
+            clearTimeout(resizeTimer);
+
+            resizeTimer = setTimeout(() => {
+
+                const { container } =
+                    getCatalogElements() || {};
+
+                if (!container) return;
+
+                /*
+                 * Pēc resize pārbaudām, vai vēl
+                 * atrodamies drošajā vidējā kopijā.
+                 */
+
+                const cycleWidth = getCycleWidth();
+
+                if (!cycleWidth) return;
+
+                while (container.scrollLeft < cycleWidth) {
+                    container.scrollLeft += cycleWidth;
+                }
+
+                while (container.scrollLeft >= cycleWidth * 2) {
+                    container.scrollLeft -= cycleWidth;
+                }
+
+            }, 150);
+        }
+    );
+}
+
+
+// ============================================================
+// PREVENT CLICK AFTER DRAG
+// ============================================================
+
+function setupCatalogClickProtection() {
+
+    const { container } = getCatalogElements() || {};
+
+    if (!container) return;
+
+    let moved = false;
+    let startX = 0;
+
+    container.addEventListener(
+        'pointerdown',
+        event => {
+
+            moved = false;
+            startX = event.clientX;
+        },
+        true
+    );
+
+
+    container.addEventListener(
+        'pointermove',
+        event => {
+
+            if (
+                Math.abs(event.clientX - startX) >
+                CATALOG_CONFIG.swipeThreshold
+            ) {
+                moved = true;
+            }
+        },
+        true
+    );
+
+
+    container.addEventListener(
+        'click',
+        event => {
+
+            if (moved) {
+
+                event.preventDefault();
+                event.stopPropagation();
+
+                moved = false;
+            }
+        },
+        true
+    );
+}
+
+
+// ============================================================
+// MAIN SETUP
+// ============================================================
+
+function setupCatalog() {
+
+    initSeamlessCatalog();
+
+    setupCatalogScroll();
+    setupCatalogDrag();
+    setupCatalogHover();
+    setupCatalogResize();
+    setupCatalogClickProtection();
+
+    startCatalogAutoSlide();
+}
+
+
+// ============================================================
+// DOM READY
+// ============================================================
 
 if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', setupCatalog);
+
+    document.addEventListener(
+        'DOMContentLoaded',
+        setupCatalog,
+        { once: true }
+    );
+
 } else {
+
     setupCatalog();
 }
-
+```
 
         
 
