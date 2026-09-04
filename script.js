@@ -96,7 +96,6 @@ function clearCanvas() {
 }
 
 //////////////////////////karuselis
-
 // Catalog Infinite Seamless Carousel Logic
 // Mobile: TRUE infinite scroll — no wrap, no jump. We just keep appending
 // clone sets ahead of the user as they scroll, and quietly prune old ones
@@ -244,24 +243,34 @@ function moveCatalog(direction) {
 
     catalogIndex += direction;
 
+    // BACKWARD wrap must be handled BEFORE animating, not after. There are
+    // no clones prepended before the real cards (clones only exist appended
+    // after them), so animating toward a negative index has no content to
+    // show — it just slides into blank space, which looks stuck. Instead,
+    // invisibly jump to the equivalent-looking position over in the clone
+    // range first (position `originalCount` looks identical to real card 0),
+    // then animate backward ONE step from there into the real last card.
+    if (catalogIndex < 0) {
+        track.style.transition = 'none';
+        catalogIndex = originalCount;
+        track.style.transform = `translateX(-${catalogIndex * cardWidth}px)`;
+        void track.offsetWidth; // force the jump to apply before animating away from it
+        catalogIndex = originalCount - 1;
+    }
+
     track.style.transition = 'transform 0.4s ease-in-out';
     track.style.transform = `translateX(-${catalogIndex * cardWidth}px)`;
 
     const onTransitionEnd = () => {
         track.removeEventListener('transitionend', onTransitionEnd);
 
-        // Once the animation into the clone has actually been SEEN,
-        // snap invisibly back to the matching real card.
+        // FORWARD wrap is corrected AFTER animating, since the clone content
+        // at the overflow position is real and fine to actually show.
         if (catalogIndex >= originalCount) {
             track.style.transition = 'none';
             catalogIndex -= originalCount;
             track.style.transform = `translateX(-${catalogIndex * cardWidth}px)`;
             void track.offsetWidth; // force reflow so the jump is applied before re-enabling transition
-        } else if (catalogIndex < 0) {
-            track.style.transition = 'none';
-            catalogIndex += originalCount;
-            track.style.transform = `translateX(-${catalogIndex * cardWidth}px)`;
-            void track.offsetWidth;
         }
 
         catalogIsAnimating = false;
@@ -324,6 +333,8 @@ if (document.readyState === 'loading') {
 } else {
     setupCatalog();
 }
+
+
 
 
 ////////////////////////dialogs 
