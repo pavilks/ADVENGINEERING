@@ -97,14 +97,11 @@ function clearCanvas() {
 
 //////////////////////////karuselis
 // Catalog Infinite Seamless Carousel Logic
-// Mobile: TRUE infinite scroll in BOTH directions — no wrap, no jump. We keep
-// appending clone sets ahead of the user as they scroll forward, AND
-// prepending clone sets behind them as they scroll backward, quietly
-// pruning old ones far off-screen (in either direction) to keep the DOM
-// from growing forever. Since we never reposition scrollLeft relative to a
-// "loop point" (we only ever compensate for content we just inserted),
-// there is nothing to visually snap or jump — motion is continuous no
-// matter how long it runs, in either direction.
+// Mobile: TRUE infinite scroll — no wrap, no jump. We just keep appending
+// clone sets ahead of the user as they scroll, and quietly prune old ones
+// far behind (off-screen) to keep the DOM from growing forever. Since we
+// never reposition scrollLeft relative to a "loop point", there is nothing
+// to visually snap or jump — motion is continuous no matter how long it runs.
 // Desktop keeps the transform/index approach (unaffected, already working).
 
 let catalogIndex = 0;
@@ -129,20 +126,6 @@ function cloneCardSet(track, realCards) {
     });
 }
 
-// Mirror of cloneCardSet, but inserts a full set BEFORE whatever is
-// currently first in the track, preserving the original left-to-right
-// order within the inserted set (so it reads identically to the real set).
-function prependCardSet(track, realCards) {
-    const frag = document.createDocumentFragment();
-    realCards.forEach(card => {
-        const clone = card.cloneNode(true);
-        clone.classList.add('cloned');
-        clone.addEventListener('click', () => card.click());
-        frag.appendChild(clone);
-    });
-    track.insertBefore(frag, track.firstElementChild);
-}
-
 function initSeamlessCatalog() {
     const track = document.getElementById('catalogTrack');
     if (!track) return;
@@ -152,32 +135,22 @@ function initSeamlessCatalog() {
     if (realCards.length === 0) return;
 
     // Capture the real cards ONCE, here, and never re-derive this list later.
-    // Pruning removes DOM elements from either end over time, and once the
+    // Pruning removes DOM elements from the front over time, and once the
     // *original* real elements themselves got pruned, re-querying
     // ':not(.cloned)' would return nothing — silently breaking all future
     // cloning forever. Keeping a stable JS reference means we always have
     // a valid template to clone from, no matter what's been removed from the DOM.
     catalogRealCards = realCards;
 
-    // Seed with a couple of extra sets on BOTH sides so there's already
-    // buffer before the scroll listener has fired even once — this is what
-    // lets the user scroll left immediately on load without hitting a wall
-    // (desktop's single-clone wrap also relies on at least one clone set
-    // existing after the real cards).
+    // Seed with a couple of extra sets so there's already buffer before the
+    // scroll listener has fired even once (desktop's single-clone wrap also
+    // relies on at least one clone set existing).
     cloneCardSet(track, realCards);
     cloneCardSet(track, realCards);
-    prependCardSet(track, realCards);
-    prependCardSet(track, realCards);
-
-    // NOTE: we don't need to touch container.scrollLeft here. It starts at
-    // 0, which now shows the first *prepended clone*, but that clone is
-    // pixel-for-pixel identical to real card 0 — so there is no visible
-    // difference, and no jump to correct for at load time.
 }
 
-// Keeps the mobile track supplied with enough clones ahead AND behind the
-// viewport, and trims clones on either side once they've scrolled far
-// enough out of view to be invisible.
+// Keeps the mobile track supplied with enough clones ahead of the viewport,
+// and trims clones that have scrolled far enough behind to be invisible.
 // Hard iteration caps (guard) mean this can NEVER hang the tab, even if
 // measurements are momentarily 0 or weird (e.g. mid-layout).
 function maintainInfiniteBuffer() {
@@ -194,66 +167,27 @@ function maintainInfiniteBuffer() {
     const setWidth = setSize * cardWidth;
     if (!setWidth) return;
 
-    const bufferDistance = container.clientWidth * 2;
-
-    // 1. Append ahead (right side): keep at least 2 screens of content
-    // beyond the right edge of the viewport.
+    // 1. Append ahead: keep at least 2 screens of content beyond the viewport.
     let guard = 0;
     while (
-        track.scrollWidth - (container.scrollLeft + container.clientWidth) < bufferDistance &&
+        track.scrollWidth - (container.scrollLeft + container.clientWidth) < container.clientWidth * 2 &&
         guard < 25
     ) {
         cloneCardSet(track, catalogRealCards);
         guard++;
     }
 
-    // 2. Prepend behind (left side): keep at least 2 screens of content
-    // before the left edge of the viewport, so scrolling left never runs
-    // out of content. Inserting before the current scroll position shifts
-    // everything visually to the right, so we bump scrollLeft by the exact
-    // inserted width in the same tick — this is instant and invisible,
-    // exactly mirroring how pruning compensates scrollLeft below.
-    guard = 0;
-    while (container.scrollLeft < bufferDistance && guard < 25) {
-        prependCardSet(track, catalogRealCards);
-        container.scrollLeft += setWidth;
-        guard++;
-    }
-
-    // 3. Prune far right: once the right side has grown more than ~2
-    // screens past a full set beyond the viewport, trim a set's worth from
-    // the end. Only ever remove '.cloned' elements — the real cards must
-    // never be deleted, they're the permanent template.
-    guard = 0;
-    while (
-        track.scrollWidth - (container.scrollLeft + container.clientWidth) > setWidth + bufferDistance &&
-        guard < 25
-    ) {
-        const lastEl = track.lastElementChild;
-        if (!lastEl || !lastEl.classList.contains('cloned')) break; // never touch real cards
-
-        let removed = 0;
-        for (let i = 0; i < setSize; i++) {
-            const el = track.lastElementChild;
-            if (!el || !el.classList.contains('cloned')) break; // stop the instant we'd hit a real card
-            removed++;
-            track.removeChild(el);
-        }
-        if (removed === 0) break; // nothing safe left to remove — bail out
-        guard++;
-    }
-
-    // 4. Prune far left: once we're more than ~2 screens past a full set to
-    // the left of the viewport, remove that set from the front and shift
-    // scrollLeft to compensate — instant and invisible since the removed
-    // content was already off-screen to the left.
+    // 2. Prune behind: once we're more than ~2 screens past a full set,
+    // remove that set from the front and shift scrollLeft to compensate —
+    // this is instant and invisible since the removed content was already
+    // off-screen to the left.
     //
     // CRITICAL: only ever remove elements with the 'cloned' class. The
     // original real cards must never be deleted — they're the permanent
     // template everything else is cloned from, and deleting them was the
     // bug that made cloning silently stop after a few loops.
     guard = 0;
-    while (container.scrollLeft > setWidth + bufferDistance && guard < 25) {
+    while (container.scrollLeft > setWidth + container.clientWidth * 2 && guard < 25) {
         const firstEl = track.firstElementChild;
         if (!firstEl || !firstEl.classList.contains('cloned')) break; // never touch real cards
 
@@ -296,10 +230,8 @@ function moveCatalog(direction) {
 
     // ---- MOBILE (touch scroll) ----
     if (window.innerWidth <= 900) {
-        // Make sure there's buffer on both sides BEFORE we scroll, in case
-        // auto-slide (or a fast arrow click) fires faster than the
-        // scroll-event-driven maintenance can keep up — this matters for
-        // backward moves now too, not just forward ones.
+        // Make sure there's buffer ahead BEFORE we scroll, in case auto-slide
+        // fires faster than the scroll-event-driven maintenance can keep up.
         maintainInfiniteBuffer();
         container.scrollBy({ left: direction * cardWidth, behavior: 'smooth' });
         return;
@@ -312,14 +244,12 @@ function moveCatalog(direction) {
     catalogIndex += direction;
 
     // BACKWARD wrap must be handled BEFORE animating, not after. There are
-    // no clones prepended before the real cards on desktop (clones only
-    // exist appended after them — the mobile prepend logic above is
-    // gated to window.innerWidth <= 900 and never runs here), so animating
-    // toward a negative index has no content to show — it just slides into
-    // blank space, which looks stuck. Instead, invisibly jump to the
-    // equivalent-looking position over in the clone range first (position
-    // `originalCount` looks identical to real card 0), then animate
-    // backward ONE step from there into the real last card.
+    // no clones prepended before the real cards (clones only exist appended
+    // after them), so animating toward a negative index has no content to
+    // show — it just slides into blank space, which looks stuck. Instead,
+    // invisibly jump to the equivalent-looking position over in the clone
+    // range first (position `originalCount` looks identical to real card 0),
+    // then animate backward ONE step from there into the real last card.
     if (catalogIndex < 0) {
         track.style.transition = 'none';
         catalogIndex = originalCount;
