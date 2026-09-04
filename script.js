@@ -215,20 +215,23 @@ function setupCatalog() {
     // Single, canonical wrap handler for mobile — catches EVERY scroll source:
     // finger swipes, arrow-button clicks, and auto-slide. This is the only
     // place scrollLeft ever gets corrected, so there's no conflicting logic.
+    //
+    // IMPORTANT: correct on every scroll tick, immediately — do NOT wait for
+    // the scroll to settle. Waiting (e.g. via setTimeout/debounce) makes the
+    // correction happen as a separate, later motion, which is what reads as
+    // "jumping back to section 1". Since the clone section is a pixel-exact
+    // copy of the real section, subtracting maxScroll the instant we cross
+    // it lands on visually identical content — imperceptible, not a jump.
     if (container) {
-        let scrollEndTimer = null;
         container.addEventListener('scroll', () => {
             if (window.innerWidth > 900) return;
 
-            clearTimeout(scrollEndTimer);
-            scrollEndTimer = setTimeout(() => {
-                const maxScroll = container.scrollWidth / 2;
-                if (container.scrollLeft >= maxScroll) {
-                    container.scrollLeft -= maxScroll;
-                } else if (container.scrollLeft < 0) {
-                    container.scrollLeft += maxScroll;
-                }
-            }, 80); // wait for the scroll (incl. momentum/snap) to actually settle
+            const maxScroll = container.scrollWidth / 2;
+            if (container.scrollLeft >= maxScroll) {
+                container.scrollLeft -= maxScroll;
+            } else if (container.scrollLeft < 0) {
+                container.scrollLeft += maxScroll;
+            }
         }, { passive: true });
     }
 }
