@@ -36,6 +36,7 @@ html, body {
 }
 
 /* 2. Navigācija */
+/* Navigācija (Droša pret izspiešanu) */
 .navbar {
     background: rgba(11, 15, 23, 0.95);
     backdrop-filter: blur(10px);
@@ -43,41 +44,66 @@ html, body {
     top: 0;
     z-index: 100;
     border-bottom: 1px solid var(--border);
-    padding: 12px 0;
+    padding: 10px 0;
     width: 100%;
+    box-sizing: border-box;
 }
 
 .nav-container {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    gap: 12px;
+    gap: 8px;
+    width: 100%;
+    box-sizing: border-box;
 }
 
-
-/* Logotipa SVG stili */
 .logo-wrapper {
     display: flex;
     align-items: center;
     text-decoration: none;
+    min-width: 0; /* Neļauj bērnu SVG izspiest rāmi */
+    flex-shrink: 1;
 }
 
 .site-logo {
-    height: 42px;
+    height: 36px;
+    max-width: 100%;
     width: auto;
     display: block;
 }
 
-/* Mobilajiem ekrāniem pielāgots izmērs */
-@media (max-width: 850px) {
-    .site-logo {
-        height: 34px;
-    }
+/* Navigācijas saites un poga */
+.nav-links {
+    display: flex;
+    list-style: none;
+    align-items: center;
+    gap: 12px;
+    flex-shrink: 0; /* Poga nekad nesaspiežas */
 }
 
+.nav-links .nav-btn {
+    background: rgba(0, 242, 254, 0.1);
+    color: var(--accent);
+    padding: 6px 12px;
+    border-radius: 6px;
+    border: 1px solid var(--accent);
+    white-space: nowrap;
+    font-weight: 600;
+    font-size: 0.8rem;
+    display: inline-block;
+}
 
+/* MOBILĀS VERSIJAS PIELĀGOJUMS (Zem 900px) */
+@media (max-width: 900px) {
+    .site-logo {
+        height: 28px; /* Samazina logotipa augstumu mobilajā skatā */
+    }
 
-
+    .nav-links a:not(.nav-btn) {
+        display: none; /* Slēpj teksta saites, atstājot tikai pogu */
+    }
+}
 
 
 .nav-links {
