@@ -66,8 +66,9 @@ html, body {
     flex-shrink: 1;
 }
 
+/* Pamatstils datoram (palielināts) */
 .site-logo {
-    height: 36px;
+    height: 44px; /* Palielināts datora versijai */
     max-width: 100%;
     width: auto;
     display: block;
@@ -97,13 +98,14 @@ html, body {
 /* MOBILĀS VERSIJAS PIELĀGOJUMS (Zem 900px) */
 @media (max-width: 900px) {
     .site-logo {
-        height: 28px; /* Samazina logotipa augstumu mobilajā skatā */
+        height: 38px; /* Precīzi pielīdzināts pogas augstumam mobilajā */
     }
 
     .nav-links a:not(.nav-btn) {
-        display: none; /* Slēpj teksta saites, atstājot tikai pogu */
+        display: none; 
     }
-}
+
+
 
 
 .nav-links {
