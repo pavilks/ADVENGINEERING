@@ -54,18 +54,31 @@ html, body {
     gap: 12px;
 }
 
-.logo {
-    font-size: 1rem;
-    font-weight: 700;
-    color: #fff;
+
+/* Logotipa SVG stili */
+.logo-wrapper {
+    display: flex;
+    align-items: center;
     text-decoration: none;
-    letter-spacing: 0.5px;
-    white-space: nowrap;
 }
 
-.logo span {
-    color: var(--accent);
+.site-logo {
+    height: 42px;
+    width: auto;
+    display: block;
 }
+
+/* Mobilajiem ekrāniem pielāgots izmērs */
+@media (max-width: 850px) {
+    .site-logo {
+        height: 34px;
+    }
+}
+
+
+
+
+
 
 .nav-links {
     display: flex;
