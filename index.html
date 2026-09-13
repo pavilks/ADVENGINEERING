@@ -235,10 +235,11 @@
         </div>
     </section>
 
-    <!-- Modal for Catalog Specifications -->
+    <!-- Modal for Catalog Specifications --
     <div id="catalogModal" class="modal">
         <div class="modal-content">
             <span class="close-modal" onclick="closeModal()">&times;</span>
+            
             <div class="modal-grid">
                 <div class="modal-img-area">
                     <img id="modalImg" src="" alt="Technical Section">
@@ -260,6 +261,37 @@
             </div>
         </div>
     </div>
+    
+<!-- Modal for Catalog Specifications -->
+    <div id="catalogModal" class="modal">
+        <div class="modal-content">
+            <span class="close-modal" onclick="closeModal()">&times;</span>
+            
+            <div class="modal-grid">
+                <div class="modal-img-area">
+                    <img id="modalImg" src="" alt="Technical Section">
+                    <!-- Noņemts "Technical Cross-Section & Spec" un pievienota jaunā 3D poga -->
+                    <button class="modal-img-btn">3D View</button>
+                </div>
+                <div class="modal-info-area">
+                    <h3 id="modalTitle">Title</h3>
+                    <p id="modalSubtitle" class="modal-sub">Subtitle</p>
+                    <hr class="modal-divider">
+                    <h4>Engineering Specifications:</h4>
+                    <p id="modalDescription">Description text...</p>
+                    
+                    <div class="modal-action-buttons">
+                        <a href="#contact" class="btn btn-primary" onclick="closeModal()">Request Similar Project</a>
+                        <!-- Noņemts "3D Model" teksts, atstājot tikai "3D View" -->
+                        <a id="modal3dBtn" href="#" target="_blank" class="btn btn-secondary btn-3d">3D View</a>
+                        <button class="btn btn-secondary" onclick="useInVisualizer()">⚡ Use in Visualizer</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    
 
     <!-- Services Section -->
     <section id="services" class="services">
