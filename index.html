@@ -270,8 +270,8 @@
             <div class="modal-grid">
                 <div class="modal-img-area">
                     <img id="modalImg" src="" alt="Technical Section">
-                    <!-- Noņemts "Technical Cross-Section & Spec" un pievienota jaunā 3D poga -->
-                    <button class="modal-img-btn">3D View</button>
+                    <!-- Jaunā 3D poga rāmī (pārveidota par saiti ar target="_blank") -->
+                    <a id="modal3dBtn" href="#" target="_blank" class="modal-img-btn">3D View</a>
                 </div>
                 <div class="modal-info-area">
                     <h3 id="modalTitle">Title</h3>
@@ -282,8 +282,7 @@
                     
                     <div class="modal-action-buttons">
                         <a href="#contact" class="btn btn-primary" onclick="closeModal()">Request Similar Project</a>
-                        <!-- Noņemts "3D Model" teksts, atstājot tikai "3D View" -->
-                        <a id="modal3dBtn" href="#" target="_blank" class="btn btn-secondary btn-3d">3D View</a>
+                        <!-- Vecā 3D View poga no šejienes ir izdzēsta -->
                         <button class="btn btn-secondary" onclick="useInVisualizer()">⚡ Use in Visualizer</button>
                     </div>
                 </div>
