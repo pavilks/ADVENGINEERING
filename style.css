@@ -544,6 +544,8 @@ html, body {
     font-size: 2rem;
     color: var(--text-muted);
     cursor: pointer;
+    z-index: 20; /* Nodrošina, ka X poga ir virs rasējuma un 3D loga */
+    line-height: 1; /* Noņem lieko neredzamo augstumu burtam */
 }
 
 .modal-grid {
@@ -702,4 +704,14 @@ footer { padding: 20px 0; border-top: 1px solid var(--border); color: var(--text
     .modal-img-area { height: 200px; }
     .contact-box { grid-template-columns: 1fr; }
     .footer-content { flex-direction: column; gap: 6px; text-align: center; }
+    .modal-content {padding: 44px 16px 24px 16px; /* Iedodam 44px atstarpi augšā, lai X poga elpotu */ }
+    .close-modal {
+        top: 8px;
+        right: 12px;}
+    .modal-img-area { height: auto; /* Pārliecināmies, ka saglabājas jaunā 140:100 proporcija */}
 }
+
+
+
+    
+
