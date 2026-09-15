@@ -268,11 +268,16 @@
             <span class="close-modal" onclick="closeModal()">&times;</span>
             
             <div class="modal-grid">
-                <div class="modal-img-area">
-                    <img id="modalImg" src="" alt="Technical Section">
-                    <!-- Jaunā 3D poga rāmī (pārveidota par saiti ar target="_blank") -->
-                    <a id="modal3dBtn" href="#" target="_blank" class="modal-img-btn">3D View</a>
-                </div>
+         <div class="modal-img-area">
+    <!-- 2D Rasējums -->
+    <img id="modalImg" src="" alt="Technical Section">
+    
+    <!-- 3D Skatītājs (Iframe) - sākumā paslēpts -->
+    <iframe id="modal3dViewer" src="" frameborder="0"></iframe>
+
+    <!-- Pārslēgšanās poga -->
+    <button id="modalToggleViewBtn" class="modal-img-btn" onclick="toggleView()">3D View</button>
+</div>
                 <div class="modal-info-area">
                     <h3 id="modalTitle">Title</h3>
                     <p id="modalSubtitle" class="modal-sub">Subtitle</p>
