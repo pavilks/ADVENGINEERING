@@ -613,13 +613,23 @@ html, body {
     display: inline-block;
 }
 
-.modal-img-btn:hover {
-    background: var(--bg-main); /* Saglabā cieto fonu, lai līnijas nespīdētu cauri */
-    color: #ffffff; /* Teksts kļūst gaišāks */
-    border-color: #ffffff; /* Kontūra iedegas balta */
-    /* Pievienojam neona spīdumu ārpusē un iekšpusē */
-    box-shadow: 0 0 12px rgba(0, 242, 254, 0.6), inset 0 0 6px rgba(0, 242, 254, 0.2); 
-    text-shadow: 0 0 8px rgba(0, 242, 254, 0.6); /* Teksta spīdums */
+/* Neona spīdums TIKAI ierīcēm ar peli (Datoriem) */
+@media (hover: hover) {
+    .modal-img-btn:hover {
+        background: var(--bg-main);
+        color: #ffffff;
+        border-color: #ffffff;
+        box-shadow: 0 0 12px rgba(0, 242, 254, 0.6), inset 0 0 6px rgba(0, 242, 254, 0.2); 
+        text-shadow: 0 0 8px rgba(0, 242, 254, 0.6);
+    }
+}
+
+/* Īss pieskāriena efekts Mobilajiem telefoniem (Tikai klikšķa brīdī) */
+.modal-img-btn:active {
+    background: rgba(0, 242, 254, 0.15);
+    border-color: #ffffff;
+    color: #ffffff;
+    box-shadow: 0 0 8px rgba(0, 242, 254, 0.4);
 }
 
 .modal-info-area h3 { 
