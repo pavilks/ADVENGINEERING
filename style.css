@@ -580,7 +580,7 @@ html, body {
     position: absolute;
     bottom: 8px;
     right: 8px;
-    background: rgba(11, 15, 23, 0.9);
+    background: var(--bg-main); /* 100% ciets, necaurspīdīgs fons */
     color: var(--accent);
     padding: 6px 14px;
     border-radius: 6px;
@@ -589,13 +589,18 @@ html, body {
     font-family: inherit;
     border: 1px solid var(--accent);
     cursor: pointer;
-    transition: all 0.2s ease;
-    text-decoration: none; /* Noņemts pasvītrojums */
+    transition: all 0.3s ease;
+    text-decoration: none;
     display: inline-block;
 }
 
 .modal-img-btn:hover {
-    background: rgba(0, 242, 254, 0.1);
+    background: var(--bg-main); /* Saglabā cieto fonu, lai līnijas nespīdētu cauri */
+    color: #ffffff; /* Teksts kļūst gaišāks */
+    border-color: #ffffff; /* Kontūra iedegas balta */
+    /* Pievienojam neona spīdumu ārpusē un iekšpusē */
+    box-shadow: 0 0 12px rgba(0, 242, 254, 0.6), inset 0 0 6px rgba(0, 242, 254, 0.2); 
+    text-shadow: 0 0 8px rgba(0, 242, 254, 0.6); /* Teksta spīdums */
 }
 
 .modal-info-area h3 { 
